@@ -101,6 +101,9 @@ h1 {
   width: 100%;
   background: black;
   margin-bottom: 1.5rem;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
 }
 
 #video {
@@ -110,6 +113,7 @@ h1 {
   display: block;
   background: black;
   outline: none;
+  border-radius: var(--border-radius);
 }
 
 .navigation-controls {
@@ -171,6 +175,9 @@ h1 {
   padding: 1rem;
   max-width: 1800px;
   margin: 0 auto;
+  height: calc(100vh - 400px); /* Fixed height for scrolling */
+  display: flex;
+  flex-direction: column;
 }
 
 .controls {
@@ -179,6 +186,7 @@ h1 {
   gap: 1rem;
   margin-bottom: 1.5rem;
   align-items: center;
+  flex-shrink: 0; /* Prevent controls from shrinking */
 }
 
 #search {
@@ -244,6 +252,9 @@ h1 {
 /* ===== Channel List Styles ===== */
 #channelList {
   transition: var(--transition);
+  overflow-y: auto; /* Enable vertical scrolling */
+  flex: 1; /* Take up remaining space */
+  padding-right: 8px; /* Space for scrollbar */
 }
 
 .list-view {
@@ -436,6 +447,10 @@ h1 {
   
   .header-title {
     font-size: 1.3rem;
+  }
+  
+  .playlist-section-wrapper {
+    height: calc(100vh - 300px); /* Adjust for mobile */
   }
   
   .controls {
