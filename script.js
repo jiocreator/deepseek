@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+Document.addEventListener('DOMContentLoaded', () => {
     // DOM উপাদান এবং প্লেয়ার ইন্সট্যান্স শুরু করুন
     const videoElement = document.getElementById('player');
     const videoTitle = document.getElementById('video-title');
@@ -33,24 +33,16 @@ document.addEventListener('DOMContentLoaded', () => {
             hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
                 const availableQualities = hls.levels.map((l) => l.height);
                 
-                // Plyr এর জন্য সোর্স কনফিগারেশন তৈরি করুন
                 const sourceConfig = {
                     type: 'video',
                     title: title,
-                    sources: [
-                        {
-                            src: url,
-                            type: 'application/x-mpegURL',
-                        },
-                    ],
+                    sources: [{ src: url, type: 'application/x-mpegURL' }],
                 };
 
-                // যদি একাধিক কোয়ালিটি পাওয়া যায়, তবে তা Plyr এ যোগ করুন
                 if (availableQualities.length > 1) {
                     sourceConfig.quality = {
-                        default: availableQualities[availableQualities.length - 1], // সর্বোচ্চ কোয়ালিটি ডিফল্ট
+                        default: availableQualities[availableQualities.length - 1],
                         options: availableQualities,
-                        // Plyr কে কোয়ালিটি পরিবর্তনের জন্য HLS.js ব্যবহার করতে বলুন
                         forced: true,
                         onChange: (quality) => {
                             hls.levels.forEach((level, levelIndex) => {
@@ -62,21 +54,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                 }
 
-                // Plyr এ নতুন সোর্স সেট করুন
                 player.source = sourceConfig;
                 player.play();
                 videoTitle.textContent = title;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             });
         } else {
-             // HLS.js সমর্থিত না হলে সাধারণ ভাবে চালান
             player.source = { type: 'video', title: title, sources: [{ src: url }] };
             player.play();
         }
     }
 
     /**
-     * M3U ফাইল পার্স করে এবং আইটেম অবজেক্টের একটি অ্যারে রিটার্ন করে
+     * M3U ফাইল পার্স করে এবং আইটেম অবজেক্টের একটি অ্যারে রিটার্ন করে (উন্নত সংস্করণ)
      * @param {string} data - M3U ফাইলের টেক্সট কন্টেন্ট
      * @returns {Array} - প্লেলিস্ট আইটেমের অ্যারে
      */
@@ -86,10 +76,20 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].startsWith('#EXTINF:')) {
                 const infoLine = lines[i];
-                const url = lines[++i]?.trim();
-                if (!url) continue;
+                let url = '';
 
-                // নামের জন্য প্রথম কমা'র পরের সব অংশ নিন
+                // #EXTINF এর পরের লাইনগুলো থেকে আসল URL টি খুঁজে বের করুন
+                for (let j = i + 1; j < lines.length; j++) {
+                    const nextLine = lines[j].trim();
+                    if (nextLine && !nextLine.startsWith('#')) {
+                        url = nextLine;
+                        i = j; // মূল লুপের ইনডেক্স আপডেট করুন
+                        break;
+                    }
+                }
+
+                if (!url) continue; // যদি কোনো URL খুঁজে না পাওয়া যায়, তবে এই আইটেমটি বাদ দিন
+
                 const commaIndex = infoLine.indexOf(',');
                 const name = (commaIndex !== -1) ? infoLine.substring(commaIndex + 1).trim() : 'Unknown Title';
 
