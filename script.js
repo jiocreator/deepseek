@@ -1,37 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM উপাদান এবং প্লেয়ার ইন্সট্যান্স শুরু করুন
     const videoElement = document.getElementById('player');
     const videoTitle = document.getElementById('video-title');
     const playlistGrid = document.getElementById('playlist-grid');
     const categoryFilters = document.getElementById('category-filters');
     const searchBar = document.getElementById('search-bar');
     
-    // Plyr প্লেয়ার শুরু করুন
     const player = new Plyr(videoElement, {
         tooltips: { controls: true, seek: true },
-        // এখানে কোয়ালিটি অপশন ডিফল্টভাবে থাকবে
-        quality: {
-            default: 'auto', // ডিফল্ট কোয়ালিটি
-            options: [],     // এখানে আমরা ডায়নামিকভাবে কোয়ালিটি যোগ করবো
-            forced: true,    // Plyr কে কোয়ালিটি কন্ট্রোল নিতে বাধ্য করুন
-            onChange: (quality) => onQualityChange(quality),
-        }
     });
     
-    // গ্লোবাল ভ্যারিয়েবল
     let hls = new Hls();
     let allItems = []; 
 
     const m3uPlaylistUrl = 'https://raw.githubusercontent.com/jiocreator/streaming/refs/heads/main/streams/live-events.m3u';
-    
-    /**
-     * HLS.js এবং Plyr.io ব্যবহার করে ভিডিও সোর্স লোড করে এবং কোয়ালিটি অপশন সেট করে
-     * @param {string} url - M3U8 ফাইলের URL
-     * @param {string} title - ভিডিওর টাইটেল
-     */
+
     function loadVideoWithQuality(url, title) {
         if (!url || !url.startsWith('http')) {
             console.error('অবৈধ URL প্রদান করা হয়েছে:', url);
+            alert('দুঃখিত, এই ভিডিওটির লিংক সঠিক নয়।');
             return;
         }
 
@@ -42,17 +28,42 @@ document.addEventListener('DOMContentLoaded', () => {
             hls.attachMedia(videoElement);
 
             hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-                // অ্যাভেইলেবল কোয়ালিটি লেভেলগুলো পান (যেমন: 720, 1080)
-                const qualityOptions = hls.levels.map(level => level.height);
-                qualityOptions.unshift('auto'); // শুরুতে 'auto' অপশন যোগ করুন
-
-                // Plyr এর কনফিগারেশন আপডেট করুন
-                player.config.quality.options = qualityOptions;
-                player.config.quality.default = 'auto'; // অটো-কে ডিফল্ট করুন
+                const availableQualities = hls.levels.map(l => l.height);
                 
-                // Plyr এর UI আপডেট করার জন্য একটি ইভেন্ট পাঠান
-                const event = new CustomEvent('qualityUpdated');
-                videoElement.dispatchEvent(event);
+                const sourceConfig = {
+                    type: 'video',
+                    title: title,
+                    sources: [
+                        {
+                            src: url,
+                            type: 'application/x-mpegURL',
+                            size: 720, // একটি ডিফল্ট সাইজ, এটি আসলে কোনো প্রভাব ফেলবে না
+                        },
+                    ],
+                };
+                
+                // যদি একাধিক কোয়ালিটি অপশন থাকে, তবে তা যুক্ত করুন
+                if (availableQualities.length > 1) {
+                    sourceConfig.quality = {
+                        default: 'auto',
+                        options: ['auto', ...availableQualities.sort((a, b) => b - a)], // কোয়ালিটিগুলো বড় থেকে ছোট সাজান
+                        forced: true,
+                        onChange: (quality) => {
+                            if (quality === 'auto') {
+                                hls.currentLevel = -1;
+                            } else {
+                                hls.levels.forEach((level, levelIndex) => {
+                                    if (level.height === quality) {
+                                        hls.currentLevel = levelIndex;
+                                    }
+                                });
+                            }
+                        },
+                    };
+                }
+                
+                // *** সমাধান: এই অংশটি প্লেয়ারকে নতুন ভিডিও সোর্স এবং কোয়ালিটি সম্পর্কে জানায় ***
+                player.source = sourceConfig;
 
                 player.play();
                 videoTitle.textContent = title;
@@ -61,25 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * যখন ব্যবহারকারী Plyr এর সেটিং থেকে কোয়ালিটি পরিবর্তন করে
-     * @param {number | string} newQuality - নতুন সিলেক্ট করা কোয়ালিটি
-     */
-    function onQualityChange(newQuality) {
-        if (newQuality === 'auto') {
-            hls.currentLevel = -1; // HLS.js কে অটোমেটিক লেভেল সুইচ করতে বলুন
-        } else {
-            hls.levels.forEach((level, levelIndex) => {
-                if (level.height === newQuality) {
-                    hls.currentLevel = levelIndex;
-                }
-            });
-        }
-    }
-
-    /**
-     * M3U ফাইল পার্স করে
-     */
     function parseM3u(data) {
         const lines = data.trim().split('\n');
         const items = [];
@@ -92,11 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const nextLine = lines[j].trim();
                     if (nextLine && !nextLine.startsWith('#')) {
                         url = nextLine;
-                        i = j;
+                        i = j; 
                         break;
                     }
                 }
-
                 if (!url) continue;
 
                 const commaIndex = infoLine.indexOf(',');
@@ -112,9 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return items;
     }
     
-    /**
-     * ক্যাটেগরি বাটন তৈরি করে
-     */
     function renderCategories(items) {
         const categories = ['All', ...new Set(items.map(item => item.category))];
         categoryFilters.innerHTML = '';
@@ -134,9 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /**
-     * প্লেলিস্ট গ্রিড রেন্ডার করে
-     */
     function renderPlaylistGrid(items) {
         playlistGrid.innerHTML = ''; 
         if (items.length === 0) {
@@ -155,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // সার্চ ফাংশনালিটি
     searchBar.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const activeCategoryBtn = document.querySelector('.filter-btn.active');
@@ -165,9 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPlaylistGrid(searchFilteredItems);
     });
 
-    /**
-     * অ্যাপ শুরু করার প্রধান ফাংশন
-     */
     async function initializeApp() {
         try {
             const response = await fetch(m3uPlaylistUrl);
@@ -175,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.text();
             
             allItems = parseM3u(data);
-            if (allItems.length > 0) {
+            if(allItems.length > 0) {
                 renderCategories(allItems);
                 renderPlaylistGrid(allItems);
             } else {
