@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allItems = []; // সব আইটেম এখানে স্টোর হবে
 
     // 🔴 আপনার M3U/M3U8 প্লেলিস্টের URL এখানে দিন
-    const m3uPlaylistUrl = 'YOUR_PLAYLIST_URL.m3u';
+    const m3uPlaylistUrl = 'https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/vod.m3u';
 
     /**
      * HLS.js এবং Plyr.io ব্যবহার করে ভিডিও সোর্স লোড করে এবং কোয়ালিটি অপশন সেট করে
