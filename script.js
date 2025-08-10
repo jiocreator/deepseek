@@ -1,4 +1,4 @@
-Document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     // DOM উপাদান এবং প্লেয়ার ইন্সট্যান্স শুরু করুন
     const videoElement = document.getElementById('player');
     const videoTitle = document.getElementById('video-title');
@@ -7,70 +7,47 @@ Document.addEventListener('DOMContentLoaded', () => {
     const searchBar = document.getElementById('search-bar');
     
     const player = new Plyr(videoElement, {
-        // এখানে Plyr এর অপশনগুলো রাখতে পারেন
         tooltips: { controls: true, seek: true },
     });
     
-    // গ্লোবাল ভ্যারিয়েবল
     let hls = new Hls();
-    let allItems = []; // সব আইটেম এখানে স্টোর হবে
+    let allItems = []; 
 
-    // 🔴 আপনার M3U/M3U8 প্লেলিস্টের URL এখানে দিন
     const m3uPlaylistUrl = 'https://raw.githubusercontent.com/jiocreator/streaming/refs/heads/main/streams/live-events.m3u';
 
-    /**
-     * HLS.js এবং Plyr.io ব্যবহার করে ভিডিও সোর্স লোড করে এবং কোয়ালিটি অপশন সেট করে
-     * @param {string} url - M3U8 ফাইলের URL
-     * @param {string} title - ভিডিওর টাইটেল
-     */
     function loadVideoWithQuality(url, title) {
+        if (!url || !url.startsWith('http')) {
+            console.error('Invalid URL provided:', url);
+            alert('দুঃখিত, এই ভিডিওটির লিংক সঠিক নয়।');
+            return;
+        }
+
         if (Hls.isSupported()) {
-            hls.destroy(); // আগের ইন্সট্যান্স ধ্বংস করুন
+            hls.destroy();
             hls = new Hls();
             hls.loadSource(url);
             hls.attachMedia(videoElement);
 
-            hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-                const availableQualities = hls.levels.map((l) => l.height);
-                
-                const sourceConfig = {
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                player.source = {
                     type: 'video',
                     title: title,
                     sources: [{ src: url, type: 'application/x-mpegURL' }],
                 };
-
-                if (availableQualities.length > 1) {
-                    sourceConfig.quality = {
-                        default: availableQualities[availableQualities.length - 1],
-                        options: availableQualities,
-                        forced: true,
-                        onChange: (quality) => {
-                            hls.levels.forEach((level, levelIndex) => {
-                                if (level.height === quality) {
-                                    hls.currentLevel = levelIndex;
-                                }
-                            });
-                        },
-                    };
-                }
-
-                player.source = sourceConfig;
                 player.play();
                 videoTitle.textContent = title;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             });
-        } else {
-            player.source = { type: 'video', title: title, sources: [{ src: url }] };
-            player.play();
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                 if (data.fatal) {
+                    console.error('HLS.js Fatal Error:', data);
+                 }
+            });
         }
     }
 
-    /**
-     * M3U ফাইল পার্স করে এবং আইটেম অবজেক্টের একটি অ্যারে রিটার্ন করে (উন্নত সংস্করণ)
-     * @param {string} data - M3U ফাইলের টেক্সট কন্টেন্ট
-     * @returns {Array} - প্লেলিস্ট আইটেমের অ্যারে
-     */
     function parseM3u(data) {
+        console.log("Parsing M3U data...");
         const lines = data.trim().split('\n');
         const items = [];
         for (let i = 0; i < lines.length; i++) {
@@ -78,37 +55,31 @@ Document.addEventListener('DOMContentLoaded', () => {
                 const infoLine = lines[i];
                 let url = '';
 
-                // #EXTINF এর পরের লাইনগুলো থেকে আসল URL টি খুঁজে বের করুন
                 for (let j = i + 1; j < lines.length; j++) {
                     const nextLine = lines[j].trim();
                     if (nextLine && !nextLine.startsWith('#')) {
                         url = nextLine;
-                        i = j; // মূল লুপের ইনডেক্স আপডেট করুন
+                        i = j; 
                         break;
                     }
                 }
 
-                if (!url) continue; // যদি কোনো URL খুঁজে না পাওয়া যায়, তবে এই আইটেমটি বাদ দিন
+                if (!url) continue;
 
                 const commaIndex = infoLine.indexOf(',');
                 const name = (commaIndex !== -1) ? infoLine.substring(commaIndex + 1).trim() : 'Unknown Title';
-
                 const logoMatch = infoLine.match(/tvg-logo="([^"]+)"/);
                 const logo = logoMatch ? logoMatch[1] : 'https://via.placeholder.com/180x250.png?text=No+Poster';
-                
                 const groupMatch = infoLine.match(/group-title="([^"]+)"/);
                 const category = groupMatch ? groupMatch[1] : 'General';
                 
                 items.push({ name, url, logo, category });
             }
         }
+        console.log(`Successfully parsed ${items.length} items.`);
         return items;
     }
     
-    /**
-     * আইটেমের অ্যারে থেকে ক্যাটেগরি বাটন তৈরি করে
-     * @param {Array} items - প্লেলিস্ট আইটেমের অ্যারে
-     */
     function renderCategories(items) {
         const categories = ['All', ...new Set(items.map(item => item.category))];
         categoryFilters.innerHTML = '';
@@ -128,14 +99,10 @@ Document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /**
-     * গ্রিডে প্লেলিস্ট আইটেমগুলো রেন্ডার করে
-     * @param {Array} items - দেখানোর জন্য আইটেমের অ্যারে
-     */
     function renderPlaylistGrid(items) {
         playlistGrid.innerHTML = ''; 
         if (items.length === 0) {
-            playlistGrid.innerHTML = '<p style="text-align:center; grid-column: 1 / -1;">কোনো কন্টেন্ট পাওয়া যায়নি।</p>';
+            playlistGrid.innerHTML = '<p class="loading-message">কোনো কন্টেন্ট পাওয়া যায়নি।</p>';
             return;
         }
         items.forEach(item => {
@@ -150,42 +117,39 @@ Document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // সার্চ ফাংশনালিটি
     searchBar.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const activeCategoryBtn = document.querySelector('.filter-btn.active');
         const activeCategory = activeCategoryBtn ? activeCategoryBtn.textContent : 'All';
-
-        let categoryFilteredItems = allItems;
-        if (activeCategory !== 'All') {
-            categoryFilteredItems = allItems.filter(item => item.category === activeCategory);
-        }
-
-        const searchFilteredItems = categoryFilteredItems.filter(item => 
-            item.name.toLowerCase().includes(searchTerm)
-        );
+        let itemsToFilter = (activeCategory === 'All') ? allItems : allItems.filter(item => item.category === activeCategory);
+        const searchFilteredItems = itemsToFilter.filter(item => item.name.toLowerCase().includes(searchTerm));
         renderPlaylistGrid(searchFilteredItems);
     });
 
-    /**
-     * প্লেয়ার শুরু করার প্রধান ফাংশন
-     */
     async function initializeApp() {
+        console.log("Initializing App...");
         try {
             const response = await fetch(m3uPlaylistUrl);
-            if (!response.ok) throw new Error('Network response failed.');
+            console.log("Fetch response received:", response.status, response.statusText);
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.statusText}`);
+            }
             const data = await response.text();
+            console.log("Playlist data fetched successfully.");
             
             allItems = parseM3u(data);
-            renderCategories(allItems);
-            renderPlaylistGrid(allItems);
+            if(allItems.length > 0) {
+                renderCategories(allItems);
+                renderPlaylistGrid(allItems);
+            } else {
+                playlistGrid.innerHTML = '<p class="loading-message">প্লেলিস্ট পার্স করা সম্ভব হয়নি বা প্লেলিস্টটি খালি।</p>';
+            }
 
         } catch (error) {
             console.error('Error initializing app:', error);
-            playlistGrid.innerHTML = '<p style="text-align:center; grid-column: 1 / -1;">প্লেলিস্ট লোড করা যায়নি। URL অথবা CORS পলিসি চেক করুন।</p>';
+            playlistGrid.innerHTML = `<p class="loading-message">প্লেলিস্ট লোড করা যায়নি। সমস্যা: ${error.message}</p>`;
         }
     }
 
-    // অ্যাপ চালু করুন
     initializeApp();
 });
