@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamFlix | আপনার প্রিয় মুভি ও সিরিজ</title>
+    <link rel="icon" href="https://img.icons8.com/fluency/48/play-button-circled.png" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="logo">🎬 StreamFlix</h1>
+            <input type="text" id="search-bar" placeholder="এখানে খুঁজুন...">
+        </header>
+        <main>
+            <div class="video-section">
+                <video id="player" playsinline controls></video>
+                <h2 id="video-title">ভিডিও চালানোর জন্য প্লেলিস্ট থেকে আইটেম সিলেক্ট করুন</h2>
+            </div>
+            <div class="playlist-section">
+                <h3>প্লেলিস্ট</h3>
+                <div id="playlist" class="playlist">
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </main>
+        <footer>
+            <p>&copy; ۲۰۲۴ - আপনার ওয়েবসাইটের নাম। All Rights Reserved.</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="script.js"></script>
+</body>
+</html>
