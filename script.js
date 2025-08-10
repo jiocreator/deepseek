@@ -1,59 +1,52 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const video = document.getElementById('player');
-    const playlistContainer = document.getElementById('playlist');
+    const player = new Plyr('#player');
     const videoTitle = document.getElementById('video-title');
-    const searchBar = document.getElementById('search-bar');
-
-    // Plyr প্লেয়ার শুরু করুন
-    const player = new Plyr(video, {
-        captions: { active: true, update: true, language: 'en' },
-    });
+    const playlistGrid = document.getElementById('playlist-grid');
+    const categoryFilters = document.getElementById('category-filters');
 
     // 🔴 আপনার M3U/M3U8 প্লেলিস্টের URL এখানে দিন
     const m3uPlaylistUrl = 'https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/vod.m3u'; 
     
     let hls;
-    let playlistItems = []; // প্লেলিস্ট আইটেমগুলো এখানে স্টোর হবে
+    let allItems = []; // সব আইটেম এখানে স্টোর হবে
 
-    // একটি ভিডিও সোর্স লোড করার ফাংশন
+    // ভিডিও সোর্স লোড করার ফাংশন
     function loadVideoSource(url, title) {
         if (Hls.isSupported()) {
-            if (hls) {
-                hls.destroy();
-            }
+            if (hls) hls.destroy();
             hls = new Hls();
             hls.loadSource(url);
-            hls.attachMedia(video);
+            hls.attachMedia(document.getElementById('player'));
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play();
+                player.play();
                 videoTitle.textContent = title;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = url;
-            video.addEventListener('loadedmetadata', () => {
-                video.play();
-                videoTitle.textContent = title;
-            });
+        } else if (player.media.canPlayType('application/vnd.apple.mpegurl')) {
+            player.source = { type: 'video', sources: [{ src: url, type: 'application/x-mpegURL' }] };
+            player.play();
+            videoTitle.textContent = title;
         }
     }
 
     // M3U প্লেলিস্ট লোড এবং পার্স করার প্রধান ফাংশন
-    async function loadPlaylist() {
+    async function initializePlayer() {
         try {
             const response = await fetch(m3uPlaylistUrl);
-            if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+            if (!response.ok) throw new Error('Network response failed.');
             const data = await response.text();
             
-            playlistItems = parseM3u(data);
-            renderPlaylist(playlistItems);
+            allItems = parseM3u(data);
+            renderCategories(allItems);
+            renderPlaylistGrid(allItems);
 
         } catch (error) {
-            console.error('প্লেলিস্ট লোড করতে ব্যর্থ:', error);
-            playlistContainer.innerHTML = '<p style="padding: 20px; text-align: center;">দুঃখিত, প্লেলিস্ট লোড করা সম্ভব হয়নি। CORS সমস্যা হতে পারে।</p>';
+            console.error('Error loading playlist:', error);
+            playlistGrid.innerHTML = '<p style="text-align:center; grid-column: 1 / -1;">প্লেলিস্ট লোড করা যায়নি।</p>';
         }
     }
 
-    // M3U ফাইল থেকে ডেটা পার্স করার ফাংশন
+    // M3U ফাইল থেকে ডেটা পার্স করার ফাংশন (group-title সহ)
     function parseM3u(data) {
         const lines = data.trim().split('\n');
         const items = [];
@@ -61,57 +54,60 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lines[i].startsWith('#EXTINF:')) {
                 const info = lines[i];
                 const url = lines[++i].trim();
+                if (!url) continue;
 
-                const nameMatch = info.match(/,(.+)/);
-                const name = nameMatch ? nameMatch[1] : 'Unknown Title';
-
+                const name = info.split(',').pop() || 'Unknown Title';
                 const logoMatch = info.match(/tvg-logo="([^"]+)"/);
-                const logo = logoMatch ? logoMatch[1] : 'https://via.placeholder.com/50x70.png?text=No+Art';
-
-                if (url) {
-                    items.push({ name, url, logo });
-                }
+                const logo = logoMatch ? logoMatch[1] : 'https://via.placeholder.com/180x250.png?text=No+Poster';
+                const groupMatch = info.match(/group-title="([^"]+)"/);
+                const category = groupMatch ? groupMatch[1] : 'General';
+                
+                items.push({ name, url, logo, category });
             }
         }
         return items;
     }
+    
+    // ক্যাটেগরি বাটন তৈরি এবং দেখানোর ফাংশন
+    function renderCategories(items) {
+        const categories = ['All', ...new Set(items.map(item => item.category))];
+        categoryFilters.innerHTML = '';
+        categories.forEach(category => {
+            const btn = document.createElement('button');
+            btn.className = 'filter-btn';
+            btn.textContent = category;
+            if (category === 'All') btn.classList.add('active');
+            
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const filteredItems = category === 'All' ? items : items.filter(item => item.category === category);
+                renderPlaylistGrid(filteredItems);
+            });
+            categoryFilters.appendChild(btn);
+        });
+    }
 
-    // প্লেলিস্ট UI তে দেখানোর ফাংশন
-    function renderPlaylist(items) {
-        playlistContainer.innerHTML = ''; // আগের আইটেম মুছে ফেলুন
+    // গ্রিড আকারে প্লেলিস্ট দেখানোর ফাংশন
+    function renderPlaylistGrid(items) {
+        playlistGrid.innerHTML = ''; // আগের আইটেম মুছে ফেলুন
         if (items.length === 0) {
-            playlistContainer.innerHTML = '<p style="padding: 20px; text-align: center;">কোনো আইটেম পাওয়া যায়নি।</p>';
+            playlistGrid.innerHTML = '<p style="text-align:center; grid-column: 1 / -1;">এই ক্যাটেগরিতে কিছু নেই।</p>';
             return;
         }
 
         items.forEach(item => {
             const div = document.createElement('div');
-            div.className = 'playlist-item';
+            div.className = 'grid-item';
             div.innerHTML = `
-                <img src="${item.logo}" alt="${item.name}">
-                <span>${item.name}</span>
+                <img src="${item.logo}" alt="${item.name}" loading="lazy">
+                <div class="title">${item.name}</div>
             `;
-
-            div.addEventListener('click', () => {
-                loadVideoSource(item.url, item.name);
-                // Active class যোগ করা
-                document.querySelectorAll('.playlist-item').forEach(el => el.classList.remove('active'));
-                div.classList.add('active');
-            });
-
-            playlistContainer.appendChild(div);
+            div.addEventListener('click', () => loadVideoSource(item.url, item.name));
+            playlistGrid.appendChild(div);
         });
     }
 
-    // সার্চ ফাংশনালিটি
-    searchBar.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const filteredItems = playlistItems.filter(item => 
-            item.name.toLowerCase().includes(searchTerm)
-        );
-        renderPlaylist(filteredItems);
-    });
-
-    // প্রথমে প্লেলিস্ট লোড করুন
-    loadPlaylist();
+    // প্লেয়ার চালু করুন
+    initializePlayer();
 });
