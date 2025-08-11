@@ -83,9 +83,9 @@ const appState = {
     currentChannelIndex: -1,
     pressTimer: null,
     isLongPress: false,
-    CHANNELS_PER_LOAD: 40, // Increased for better initial view
-    brightness: 1, // Default brightness (1 = 100%)
-    volume: 1 // Default volume (1 = 100%)
+    CHANNELS_PER_LOAD: 40,
+    brightness: 1,
+    volume: 1
 };
 
 // --- Playlist URLs ---
@@ -148,8 +148,6 @@ function initializeCustomSelects() {
 }
 
 // --- Core Functions ---
-
-// *** BUGFIX & IMPROVEMENT: Switched to Promise.allSettled for robust loading ***
 async function loadAllPlaylists() {
     console.log("🚀 Starting to load all playlists...");
     channelList.innerHTML = '⏳ Loading Playlists...';
@@ -213,7 +211,6 @@ function parseM3U(data) {
     return channels;
 }
 
-// *** BUGFIX & IMPROVEMENT: Correctly filters and then triggers re-render ***
 function setupInitialView() {
     console.log("🔄 Setting up view...");
     const search = searchInput.value.toLowerCase().trim();
@@ -222,7 +219,6 @@ function setupInitialView() {
 
     let tempChannels = [...appState.allChannels];
 
-    // Filtering
     if (selectedGroup === "Favorites") {
         tempChannels = getFavorites();
     } else if (selectedGroup !== "") {
@@ -232,17 +228,15 @@ function setupInitialView() {
         tempChannels = tempChannels.filter(ch => ch.name.toLowerCase().includes(search));
     }
 
-    // Sorting
     if (sortOrder === 'az') {
         tempChannels.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortOrder === 'za') {
-        tempChannels.sort((a, b) => b.name.localeCompare(a.name));
+        tempChannels.sort((a, b) => b.name.localeCompare(b.name));
     }
 
     appState.currentFilteredChannels = tempChannels;
     console.log(`📺 Found ${appState.currentFilteredChannels.length} channels for the current view.`);
 
-    // Reset and render
     channelList.innerHTML = "";
     appState.pageToLoad = 1;
     loadMoreChannels();
@@ -306,6 +300,8 @@ function playStream(channel, index) {
         renderQualitySelector(qualityLevels);
         qualityLevels.off('addqualitylevel');
         qualityLevels.on('addqualitylevel', () => renderQualitySelector(qualityLevels));
+        // Restore brightness on new stream
+        player.el().style.filter = `brightness(${appState.brightness})`;
     });
 }
 
@@ -333,28 +329,24 @@ function renderQualitySelector(qualityLevels) {
     });
 }
 
-// --- Populate Categories with Proper Sorting ---
 function populateCategories() {
     const optionsContainer = categoryFilter.querySelector('.custom-options');
     optionsContainer.innerHTML = '';
     
-    // Add "All Categories" option
     const allOpt = document.createElement("span");
     allOpt.className = "custom-option selected";
     allOpt.dataset.value = "";
     allOpt.textContent = "All Categories";
     optionsContainer.appendChild(allOpt);
     
-    // Add "Favorites" option
     const favOpt = document.createElement("span");
     favOpt.className = "custom-option";
     favOpt.dataset.value = "Favorites";
     favOpt.textContent = "⭐ Favorites";
     optionsContainer.appendChild(favOpt);
     
-    // Get and sort groups alphabetically
     const groups = [...new Set(appState.allChannels.map(ch => ch.group).filter(Boolean))];
-    groups.sort((a, b) => a.localeCompare(b)); // Sort groups A-Z
+    groups.sort((a, b) => a.localeCompare(b));
     groups.forEach(group => {
         const opt = document.createElement("span");
         opt.className = "custom-option";
@@ -423,14 +415,13 @@ function playPrevious() {
     if (prevGlobalIndex > -1) playStream(appState.allChannels[prevGlobalIndex], prevGlobalIndex);
 }
 
-// --- New: Gesture Controls for Volume and Brightness in Fullscreen ---
+// --- Gesture Controls for Volume and Brightness in Fullscreen ---
 let touchStartY = 0;
 let touchStartX = 0;
 let isGesturing = false;
-let gestureSide = null; // 'left' or 'right'
+let gestureSide = null;
 let brightnessIndicator, volumeIndicator;
 
-// Create gesture overlays
 function createGestureOverlays() {
     const videoWrapper = document.querySelector('.video-section-wrapper');
     const overlay = document.createElement('div');
@@ -461,18 +452,27 @@ function handleTouchStart(e) {
     isGesturing = true;
     const videoWidth = player.el().offsetWidth;
     gestureSide = touchStartX < videoWidth / 2 ? 'left' : 'right';
+    // Initialize indicators
+    if (gestureSide === 'left') {
+        brightnessIndicator.style.display = 'flex';
+        volumeIndicator.style.display = 'none';
+    } else {
+        volumeIndicator.style.display = 'flex';
+        brightnessIndicator.style.display = 'none';
+    }
 }
 
 function handleTouchMove(e) {
     if (!isGesturing || !player.isFullscreen()) return;
+    e.preventDefault(); // Prevent default scrolling
     const touchY = e.touches[0].clientY;
     const deltaY = touchStartY - touchY; // Positive for up swipe
-    const sensitivity = 2; // Adjust sensitivity (higher = slower change)
+    const sensitivity = 2; // Adjust sensitivity
     const change = deltaY / player.el().offsetHeight * sensitivity;
 
     if (gestureSide === 'left') {
         // Brightness (left side)
-        appState.brightness = Math.max(0.1, Math.min(2, appState.brightness + change)); // 10% to 200%
+        appState.brightness = Math.max(0.1, Math.min(2, appState.brightness + change));
         player.el().style.filter = `brightness(${appState.brightness})`;
         const percent = Math.round(appState.brightness * 100);
         document.getElementById('brightnessValue').textContent = `${percent}%`;
@@ -480,7 +480,7 @@ function handleTouchMove(e) {
         brightnessIndicator.style.display = 'flex';
     } else if (gestureSide === 'right') {
         // Volume (right side)
-        appState.volume = Math.max(0, Math.min(1, appState.volume + change)); // 0 to 100%
+        appState.volume = Math.max(0, Math.min(1, appState.volume + change));
         player.volume(appState.volume);
         const percent = Math.round(appState.volume * 100);
         document.getElementById('volumeValue').textContent = `${percent}%`;
@@ -490,11 +490,12 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd() {
+    if (!isGesturing) return;
     isGesturing = false;
     setTimeout(() => {
         brightnessIndicator.style.display = 'none';
         volumeIndicator.style.display = 'none';
-    }, 1000); // Hide indicators after 1s
+    }, 1000);
 }
 
 // --- Event Listeners ---
@@ -542,8 +543,13 @@ player.on('fullscreenchange', function() {
     try {
         if (player.isFullscreen()) {
             screen.orientation.lock('landscape');
+            // Ensure overlay visibility
+            const overlay = document.querySelector('.gesture-overlay');
+            if (overlay) overlay.style.display = 'flex';
         } else {
             screen.orientation.unlock();
+            const overlay = document.querySelector('.gesture-overlay');
+            if (overlay) overlay.style.display = 'none';
         }
     } catch (e) {
         console.warn("Screen Orientation API not fully supported.", e);
@@ -557,7 +563,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!areAnimationsEnabled) {
         document.body.classList.add('animations-disabled');
     }
-    // Adsterra first click ad - logic moved inside the main DOMContentLoaded
     const adsterraDirectLink = 'https://www.profitableratecpm.com/yrygzszmx?key=b43ea4afe6263aed815797a0ebb4f75d';
     const storageKey = 'lastAdRedirectTime';
     const twentyFourHours = 24 * 60 * 60 * 1000;
@@ -571,12 +576,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { once: true });
     }
 
-    // New: Initialize gesture overlays and touch events
     createGestureOverlays();
     const videoEl = player.el();
-    videoEl.addEventListener('touchstart', handleTouchStart, { passive: true });
-    videoEl.addEventListener('touchmove', handleTouchMove, { passive: true });
-    videoEl.addEventListener('touchend', handleTouchEnd);
+    videoEl.addEventListener('touchstart', handleTouchStart, { passive: false });
+    videoEl.addEventListener('touchmove', handleTouchMove, { passive: false });
+    videoEl.addEventListener('touchend', handleTouchEnd, { passive: false });
 });
 
 document.addEventListener('keydown', (event) => {
