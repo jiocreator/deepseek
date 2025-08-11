@@ -22,7 +22,7 @@
     --success-color: #4caf50;
     --error-color: #f44336;
     --font-family: 'CustomSiteFont', 'Poppins', sans-serif;
-    --border-radius: 12px; /* বর্ডার রেডিয়াস বাড়ানো হয়েছে */
+    --border-radius: 12px;
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     --transition-speed: 0.3s;
 }
@@ -133,7 +133,7 @@ body {
     .navigation-controls button, #qualitySelector button { padding: 0.75rem; }
 }
 
-/* Gesture Indicators for Volume/Brightness */
+/* Gesture Indicators for Volume/Brightness - Enhanced */
 .gesture-overlay {
     position: absolute;
     top: 0;
@@ -141,25 +141,25 @@ body {
     width: 100%;
     height: 100%;
     display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
+    z-index: 1000; /* Ensure above video */
     pointer-events: none;
 }
 .gesture-indicator {
-    background: rgba(0, 0, 0, 0.7);
-    padding: 10px 20px;
-    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px 25px;
+    border-radius: 12px;
     color: white;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    font-family: var(--font-family);
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-width: 150px;
 }
 .gesture-indicator .progress-bar {
-    width: 200px;
-    height: 5px;
-    background: #fff;
+    width: 120px;
+    height: 8px;
+    background: #555;
     margin-top: 10px;
     border-radius: 5px;
 }
@@ -167,6 +167,7 @@ body {
     height: 100%;
     background: var(--primary-color);
     border-radius: 5px;
+    transition: width 0.2s ease;
 }
 
 /* Left/Right side indicators */
@@ -174,12 +175,22 @@ body {
 #volumeIndicator { right: 20px; position: absolute; }
 
 /* Show when active */
-.video-js.vjs-fullscreen .gesture-overlay { display: flex; }
+.video-js.vjs-fullscreen .gesture-overlay {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Ensure visibility in fullscreen */
+.vjs-fullscreen .vjs-tech { /* Video.js tech layer */
+    position: relative;
+    z-index: 1;
+}
 
 /* =================================
    Playlist Section & Controls - IMPROVED
    ================================= */
-.playlist-section-wrapper { display: flex; flex-direction: column; gap: 1rem; height: 100%; /* Ensure it takes full available height */ }
+.playlist-section-wrapper { display: flex; flex-direction: column; gap: 1rem; height: 100%; }
 .controls { display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem; background-color: var(--surface-color); border-radius: var(--border-radius); align-items: center; }
 .controls input { flex-grow: 1; min-width: 150px; padding: 0.75rem; background: var(--background-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; font-size: 1rem; font-family: var(--font-family); }
 .controls input:focus { outline: none; border-color: var(--primary-color); }
@@ -188,18 +199,18 @@ body {
 .custom-select-trigger { padding: 0.75rem 2rem 0.75rem 0.75rem; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; }
 .custom-select-trigger::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); transition: transform var(--transition-speed) ease; }
 .custom-select.open .custom-select-trigger::after { transform: translateY(-50%) rotate(180deg); }
-.custom-options { position: absolute; top: calc(100% + 5px); left: 0; right: 0; background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: 8px; z-index: 10; max-height: 250px; overflow-y: auto; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all var(--transition-speed) ease; display: flex; flex-direction: column; /* Ensure options are stacked vertically */ }
+.custom-options { position: absolute; top: calc(100% + 5px); left: 0; right: 0; background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: 8px; z-index: 10; max-height: 250px; overflow-y: auto; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all var(--transition-speed) ease; display: flex; flex-direction: column; }
 .custom-select.open .custom-options { opacity: 1; visibility: visible; transform: translateY(0); }
-.custom-option { padding: 0.75rem; cursor: pointer; transition: background-color var(--transition-speed) ease; order: 0; /* Default order for options */ }
+.custom-option { padding: 0.75rem; cursor: pointer; transition: background-color var(--transition-speed) ease; order: 0; }
 .custom-option:hover { background-color: var(--primary-color-hover); }
-.custom-option.selected { background-color: var(--primary-color); color: white; order: -1; /* Move selected option to the top */ }
+.custom-option.selected { background-color: var(--primary-color); color: white; order: -1; }
 
 /* Ensure category options are sorted visually */
 #categoryFilter .custom-options .custom-option[data-value=""] {
-    order: -3; /* "All Categories" at the top */
+    order: -3;
 }
 #categoryFilter .custom-options .custom-option[data-value="Favorites"] {
-    order: -2; /* "Favorites" just below "All Categories" */
+    order: -2;
 }
 
 .view-toggle button { padding: 0.75rem; border: 1px solid var(--border-color); background-color: transparent; color: var(--text-color-dark); cursor: pointer; font-size: 1rem; }
@@ -208,8 +219,7 @@ body {
 /* =================================
    Channel List (List & Grid View) - IMPROVED
    ================================= */
-#channelList { background: var(--surface-color); border-radius: var(--border-radius); padding: 0.5rem; position: relative; flex-grow: 1; /* Take remaining space */ overflow-y: auto; /* Enable scrolling */ max-height: calc(100vh - 300px); /* Adjust height to prevent overlap with other elements */ }
-/* কাস্টম স্লিম স্ক্রলবার */
+#channelList { background: var(--surface-color); border-radius: var(--border-radius); padding: 0.5rem; position: relative; flex-grow: 1; overflow-y: auto; max-height: calc(100vh - 300px); }
 #channelList::-webkit-scrollbar { width: 8px; }
 #channelList::-webkit-scrollbar-track { background: transparent; }
 #channelList::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
@@ -272,9 +282,9 @@ body {
     body { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: auto 1fr auto; grid-template-areas: "header header" "video playlist" "footer footer"; height: 100vh; overflow: hidden; }
     .main-header { grid-area: header; margin-bottom: 0; }
     .video-section-wrapper { grid-area: video; }
-    .playlist-section-wrapper { grid-area: playlist; display: flex; flex-direction: column; min-height: 0; height: 100%; /* Ensure it takes full height of grid area */ }
+    .playlist-section-wrapper { grid-area: playlist; display: flex; flex-direction: column; min-height: 0; height: 100%; }
     .footer-wrapper { grid-area: footer; padding-top: 0; }
-    #channelList { flex-grow: 1; overflow-y: auto; max-height: none; /* Remove max-height for desktop */ height: calc(100% - 60px); /* Adjust for controls height */ }
+    #channelList { flex-grow: 1; overflow-y: auto; max-height: none; height: calc(100% - 60px); }
 }
 
 @media (min-width: 1280px) and (min-height: 720px) {
