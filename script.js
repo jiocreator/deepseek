@@ -1,171 +1,595 @@
+// --- Configuration ---
+const isAdGateEnabled = false; 
+const areAnimationsEnabled = true;
+
+// --- Ad Gate System ---
 document.addEventListener('DOMContentLoaded', () => {
-    const videoElement = document.getElementById('player');
-    const videoTitle = document.getElementById('video-title');
-    const playlistGrid = document.getElementById('playlist-grid');
-    const categoryFilters = document.getElementById('category-filters');
-    const searchBar = document.getElementById('search-bar');
-    
-    const player = new Plyr(videoElement, {
-        tooltips: { controls: true, seek: true },
-    });
-    
-    let hls = new Hls();
-    let allItems = []; 
+    if (!isAdGateEnabled) {
+        const adGateOverlay = document.getElementById('ad-gate-overlay');
+        if (adGateOverlay) adGateOverlay.style.display = 'none';
+    } else {
+        const adGateOverlay = document.getElementById('ad-gate-overlay');
+        const unlockButton = document.getElementById('unlockButton');
+        const adLink = 'https://www.profitableratecpm.com/yrygzszmx?key=b43ea4afe6263aed815797a0ebb4f75d';
+        const storageKey = 'lastAdUnlockTime';
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        const lastUnlockTime = localStorage.getItem(storageKey);
+        const currentTime = new Date().getTime();
 
-    const m3uPlaylistUrl = 'https://raw.githubusercontent.com/jiocreator/streaming/refs/heads/main/streams/live-events.m3u';
-
-    function loadVideoWithQuality(url, title) {
-        if (!url || !url.startsWith('http')) {
-            console.error('অবৈধ URL প্রদান করা হয়েছে:', url);
-            alert('দুঃখিত, এই ভিডিওটির লিংক সঠিক নয়।');
-            return;
+        if (lastUnlockTime && (currentTime - lastUnlockTime < twentyFourHours)) {
+            adGateOverlay.style.display = 'none';
+        } else {
+            adGateOverlay.style.display = 'flex';
         }
 
-        if (Hls.isSupported()) {
-            hls.destroy();
-            hls = new Hls();
-            hls.loadSource(url);
-            hls.attachMedia(videoElement);
+        unlockButton.addEventListener('click', () => {
+            const adWindow = window.open(adLink, '_blank');
+            unlockButton.textContent = "Please wait 10 seconds...";
+            unlockButton.disabled = true;
 
-            hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-                const availableQualities = hls.levels.map(l => l.height);
-                
-                const sourceConfig = {
-                    type: 'video',
-                    title: title,
-                    sources: [
-                        {
-                            src: url,
-                            type: 'application/x-mpegURL',
-                            size: 720, // একটি ডিফল্ট সাইজ, এটি আসলে কোনো প্রভাব ফেলবে না
-                        },
-                    ],
-                };
-                
-                // যদি একাধিক কোয়ালিটি অপশন থাকে, তবে তা যুক্ত করুন
-                if (availableQualities.length > 1) {
-                    sourceConfig.quality = {
-                        default: 'auto',
-                        options: ['auto', ...availableQualities.sort((a, b) => b - a)], // কোয়ালিটিগুলো বড় থেকে ছোট সাজান
-                        forced: true,
-                        onChange: (quality) => {
-                            if (quality === 'auto') {
-                                hls.currentLevel = -1;
-                            } else {
-                                hls.levels.forEach((level, levelIndex) => {
-                                    if (level.height === quality) {
-                                        hls.currentLevel = levelIndex;
-                                    }
-                                });
-                            }
-                        },
-                    };
+            let timeWaited = 0;
+            const requiredWaitTime = 10;
+
+            const timer = setInterval(() => {
+                if (!adWindow || adWindow.closed) {
+                    clearInterval(timer);
+                    alert("Please do not close the ad page before 10 seconds.");
+                    window.location.href = adLink;
+                    return;
                 }
-                
-                // *** সমাধান: এই অংশটি প্লেয়ারকে নতুন ভিডিও সোর্স এবং কোয়ালিটি সম্পর্কে জানায় ***
-                player.source = sourceConfig;
-
-                player.play();
-                videoTitle.textContent = title;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-        }
-    }
-
-    function parseM3u(data) {
-        const lines = data.trim().split('\n');
-        const items = [];
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].startsWith('#EXTINF:')) {
-                const infoLine = lines[i];
-                let url = '';
-
-                for (let j = i + 1; j < lines.length; j++) {
-                    const nextLine = lines[j].trim();
-                    if (nextLine && !nextLine.startsWith('#')) {
-                        url = nextLine;
-                        i = j; 
-                        break;
+                timeWaited++;
+                unlockButton.textContent = `Waiting... ${requiredWaitTime - timeWaited}s`;
+                if (timeWaited >= requiredWaitTime) {
+                    clearInterval(timer);
+                    localStorage.setItem(storageKey, new Date().getTime());
+                    adGateOverlay.style.display = 'none';
+                    try {
+                        adWindow.close();
+                    } catch (e) {
+                        console.warn("Could not close ad window.");
                     }
                 }
-                if (!url) continue;
-
-                const commaIndex = infoLine.indexOf(',');
-                const name = (commaIndex !== -1) ? infoLine.substring(commaIndex + 1).trim() : 'Unknown Title';
-                const logoMatch = infoLine.match(/tvg-logo="([^"]+)"/);
-                const logo = logoMatch ? logoMatch[1] : 'https://via.placeholder.com/180x250.png?text=No+Poster';
-                const groupMatch = infoLine.match(/group-title="([^"]+)"/);
-                const category = groupMatch ? groupMatch[1] : 'General';
-                
-                items.push({ name, url, logo, category });
-            }
-        }
-        return items;
-    }
-    
-    function renderCategories(items) {
-        const categories = ['All', ...new Set(items.map(item => item.category))];
-        categoryFilters.innerHTML = '';
-        categories.forEach(category => {
-            const btn = document.createElement('button');
-            btn.className = 'filter-btn';
-            btn.textContent = category;
-            if (category === 'All') btn.classList.add('active');
-            
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const filteredItems = category === 'All' ? allItems : allItems.filter(item => item.category === category);
-                renderPlaylistGrid(filteredItems);
-            });
-            categoryFilters.appendChild(btn);
+            }, 1000);
         });
     }
+});
 
-    function renderPlaylistGrid(items) {
-        playlistGrid.innerHTML = ''; 
-        if (items.length === 0) {
-            playlistGrid.innerHTML = '<p class="loading-message">কোনো কন্টেন্ট পাওয়া যায়নি।</p>';
+// --- Element References ---
+const player = videojs('video', {
+    controls: true,
+    autoplay: true,
+    preload: 'auto',
+    fluid: true
+});
+
+const channelList = document.getElementById("channelList");
+const searchInput = document.getElementById("search");
+const qualitySelector = document.getElementById("qualitySelector");
+const listViewBtn = document.getElementById("listViewBtn");
+const gridViewBtn = document.getElementById("gridViewBtn");
+const toastNotification = document.getElementById("toastNotification");
+const loadingSpinner = document.getElementById("loadingSpinner");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const categoryFilter = document.getElementById("categoryFilter");
+const sortSelector = document.getElementById("sortSelector");
+
+// --- App State ---
+const appState = {
+    allChannels: [],
+    currentFilteredChannels: [],
+    pageToLoad: 1,
+    isLoading: false,
+    currentChannelIndex: -1,
+    pressTimer: null,
+    isLongPress: false,
+    CHANNELS_PER_LOAD: 40, // Increased for better initial view
+    brightness: 1, // Default brightness (1 = 100%)
+    volume: 1 // Default volume (1 = 100%)
+};
+
+// --- Playlist URLs ---
+const playlistUrls = [
+    "https://raw.githubusercontent.com/jiocreator/streaming/refs/heads/main/streams/live-events.m3u",
+    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/quran-bangla.m3u",
+    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/channels.m3u",
+    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/vod.m3u",
+    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/movies.m3u",
+    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/dirilis-ertugrul.m3u",
+    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/kurulus-osman.m3u",
+    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/alp-arsalan.m3u",
+    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/the-great-seljuk.m3u",
+];
+
+// --- Lazy Loading Images ---
+const lazyImageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const img = entry.target;
+            if (img.dataset.src) img.src = img.dataset.src;
+            img.classList.remove("lazy");
+            observer.unobserve(img);
+        }
+    });
+});
+
+// --- Custom Dropdown Logic ---
+function initializeCustomSelects() {
+    window.addEventListener('click', e => {
+        document.querySelectorAll('.custom-select.open').forEach(select => {
+            if (!select.contains(e.target)) {
+                select.classList.remove('open');
+            }
+        });
+    });
+    document.querySelectorAll('.custom-select-wrapper').forEach(wrapper => {
+        const trigger = wrapper.querySelector('.custom-select-trigger');
+        const optionsContainer = wrapper.querySelector('.custom-options');
+        const selectContainer = wrapper.querySelector('.custom-select');
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.custom-select.open').forEach(openSelect => {
+                if (openSelect !== selectContainer) openSelect.classList.remove('open');
+            });
+            selectContainer.classList.toggle('open');
+        });
+        optionsContainer.addEventListener('click', e => {
+            if (e.target.classList.contains('custom-option')) {
+                trigger.querySelector('span').textContent = e.target.textContent;
+                selectContainer.dataset.value = e.target.dataset.value;
+                optionsContainer.querySelector('.selected')?.classList.remove('selected');
+                e.target.classList.add('selected');
+                selectContainer.classList.remove('open');
+                setupInitialView();
+            }
+        });
+    });
+}
+
+// --- Core Functions ---
+
+// *** BUGFIX & IMPROVEMENT: Switched to Promise.allSettled for robust loading ***
+async function loadAllPlaylists() {
+    console.log("🚀 Starting to load all playlists...");
+    channelList.innerHTML = '⏳ Loading Playlists...';
+    try {
+        const promises = playlistUrls.map(url => fetch(url).then(res => {
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status} for ${url}`);
+            return res.text();
+        }));
+
+        const results = await Promise.allSettled(promises);
+        
+        let combinedChannels = [];
+        results.forEach((result, index) => {
+            if (result.status === 'fulfilled' && result.value) {
+                console.log(`✅ Playlist loaded successfully: ${playlistUrls[index]}`);
+                combinedChannels = combinedChannels.concat(parseM3U(result.value));
+            } else if (result.status === 'rejected') {
+                console.error(`❌ FAILED to load playlist: ${playlistUrls[index]}`, result.reason);
+            }
+        });
+        
+        console.log(`🎉 Total channels parsed: ${combinedChannels.length}`);
+        appState.allChannels = combinedChannels;
+        
+        if (appState.allChannels.length === 0) {
+            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">Could not load any channels. Please check network connection or console for errors.</div>`;
             return;
         }
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'grid-item';
-            div.innerHTML = `
-                <img src="${item.logo}" alt="${item.name}" loading="lazy">
-                <div class="title">${item.name}</div>
-            `;
-            div.addEventListener('click', () => loadVideoWithQuality(item.url, item.name));
-            playlistGrid.appendChild(div);
-        });
-    }
-    
-    searchBar.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const activeCategoryBtn = document.querySelector('.filter-btn.active');
-        const activeCategory = activeCategoryBtn ? activeCategoryBtn.textContent : 'All';
-        let itemsToFilter = (activeCategory === 'All') ? allItems : allItems.filter(item => item.category === activeCategory);
-        const searchFilteredItems = itemsToFilter.filter(item => item.name.toLowerCase().includes(searchTerm));
-        renderPlaylistGrid(searchFilteredItems);
-    });
 
-    async function initializeApp() {
-        try {
-            const response = await fetch(m3uPlaylistUrl);
-            if (!response.ok) throw new Error(`নেটওয়ার্ক রেসপন্স সঠিক নয়: ${response.statusText}`);
-            const data = await response.text();
-            
-            allItems = parseM3u(data);
-            if(allItems.length > 0) {
-                renderCategories(allItems);
-                renderPlaylistGrid(allItems);
-            } else {
-                playlistGrid.innerHTML = '<p class="loading-message">প্লেলিস্ট পার্স করা সম্ভব হয়নি বা প্লেলিস্টটি খালি।</p>';
+        populateCategories();
+        setupInitialView();
+    } catch (error) {
+        console.error("A critical error occurred during playlist loading:", error);
+        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">A critical error occurred. Please check console.</div>`;
+    }
+}
+
+function parseM3U(data) {
+    const lines = data.split("\n");
+    let channels = [];
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith("#EXTINF")) {
+            try {
+                const meta = lines[i];
+                const url = lines[i + 1]?.trim();
+                if (!url) continue;
+                const nameMatch = meta.match(/,(.*)$/);
+                const logoMatch = meta.match(/tvg-logo="(.*?)"/);
+                const groupMatch = meta.match(/group-title="(.*?)"/);
+                channels.push({
+                    name: nameMatch ? nameMatch[1].trim() : "Unnamed Channel",
+                    logo: logoMatch ? logoMatch[1] : "",
+                    group: groupMatch ? groupMatch[1].trim() : "General",
+                    url: url
+                });
+            } catch (e) {
+                console.warn("Skipping a malformed M3U entry.");
             }
-        } catch (error) {
-            playlistGrid.innerHTML = `<p class="loading-message">প্লেলিস্ট লোড করা যায়নি। সমস্যা: ${error.message}</p>`;
         }
     }
+    return channels;
+}
 
-    initializeApp();
+// *** BUGFIX & IMPROVEMENT: Correctly filters and then triggers re-render ***
+function setupInitialView() {
+    console.log("🔄 Setting up view...");
+    const search = searchInput.value.toLowerCase().trim();
+    const selectedGroup = categoryFilter.dataset.value || "";
+    const sortOrder = sortSelector.dataset.value || "default";
+
+    let tempChannels = [...appState.allChannels];
+
+    // Filtering
+    if (selectedGroup === "Favorites") {
+        tempChannels = getFavorites();
+    } else if (selectedGroup !== "") {
+        tempChannels = tempChannels.filter(ch => ch.group === selectedGroup);
+    }
+    if (search) {
+        tempChannels = tempChannels.filter(ch => ch.name.toLowerCase().includes(search));
+    }
+
+    // Sorting
+    if (sortOrder === 'az') {
+        tempChannels.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortOrder === 'za') {
+        tempChannels.sort((a, b) => b.name.localeCompare(a.name));
+    }
+
+    appState.currentFilteredChannels = tempChannels;
+    console.log(`📺 Found ${appState.currentFilteredChannels.length} channels for the current view.`);
+
+    // Reset and render
+    channelList.innerHTML = "";
+    appState.pageToLoad = 1;
+    loadMoreChannels();
+}
+
+function loadMoreChannels() {
+    if (appState.isLoading) return;
+    appState.isLoading = true;
+    loadingSpinner.style.display = 'block';
+
+    const startIndex = (appState.pageToLoad - 1) * appState.CHANNELS_PER_LOAD;
+    const channelsToRender = appState.currentFilteredChannels.slice(startIndex, startIndex + appState.CHANNELS_PER_LOAD);
+    
+    if (channelsToRender.length === 0 && appState.pageToLoad === 1) {
+        channelList.innerHTML = `<div style="padding: 20px; text-align: center;">No content found.</div>`;
+    }
+
+    channelsToRender.forEach(ch => {
+        const div = document.createElement("div");
+        div.className = "channel";
+        div.dataset.index = appState.allChannels.findIndex(c => c.url === ch.url);
+        
+        const img = document.createElement("img");
+        img.dataset.src = ch.logo || "https://via.placeholder.com/50";
+        img.classList.add("lazy");
+        img.onerror = () => { img.src = "https://via.placeholder.com/50"; };
+        lazyImageObserver.observe(img);
+        
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "channel-name";
+        nameSpan.textContent = ch.name;
+        
+        const playingIndicator = document.createElement("div");
+        playingIndicator.className = 'playing-indicator';
+        playingIndicator.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        
+        div.append(img, nameSpan, playingIndicator);
+        channelList.appendChild(div);
+    });
+
+    appState.pageToLoad++;
+    appState.isLoading = false;
+    loadingSpinner.style.display = 'none';
+}
+
+function playStream(channel, index) {
+    if (!channel) return;
+    if (channel.name) document.title = `${channel.name} - Streaming`;
+    appState.currentChannelIndex = index;
+    
+    document.querySelector('.channel.is-playing')?.classList.remove('is-playing', 'active');
+    
+    const activeElement = document.querySelector(`.channel[data-index="${index}"]`);
+    if (activeElement) {
+        activeElement.classList.add('active', 'is-playing');
+    }
+    
+    player.src({ src: channel.url });
+    player.one('loadedmetadata', () => {
+        const qualityLevels = player.qualityLevels();
+        renderQualitySelector(qualityLevels);
+        qualityLevels.off('addqualitylevel');
+        qualityLevels.on('addqualitylevel', () => renderQualitySelector(qualityLevels));
+    });
+}
+
+function renderQualitySelector(qualityLevels) {
+    qualitySelector.innerHTML = "";
+    const validLevels = Array.from(qualityLevels).filter(level => level.height);
+    if (validLevels.length <= 1) return;
+    validLevels.sort((a, b) => a.height - b.height);
+    const autoBtn = document.createElement("button");
+    autoBtn.textContent = "Auto";
+    autoBtn.onclick = () => {
+        for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = true;
+        showToast('Auto quality selected');
+    };
+    qualitySelector.appendChild(autoBtn);
+    validLevels.forEach(level => {
+        const btn = document.createElement("button");
+        btn.textContent = `${level.height}p`;
+        btn.onclick = () => {
+            for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = false;
+            level.enabled = true;
+            showToast(`${level.height}p quality selected`);
+        };
+        qualitySelector.appendChild(btn);
+    });
+}
+
+// --- Populate Categories with Proper Sorting ---
+function populateCategories() {
+    const optionsContainer = categoryFilter.querySelector('.custom-options');
+    optionsContainer.innerHTML = '';
+    
+    // Add "All Categories" option
+    const allOpt = document.createElement("span");
+    allOpt.className = "custom-option selected";
+    allOpt.dataset.value = "";
+    allOpt.textContent = "All Categories";
+    optionsContainer.appendChild(allOpt);
+    
+    // Add "Favorites" option
+    const favOpt = document.createElement("span");
+    favOpt.className = "custom-option";
+    favOpt.dataset.value = "Favorites";
+    favOpt.textContent = "⭐ Favorites";
+    optionsContainer.appendChild(favOpt);
+    
+    // Get and sort groups alphabetically
+    const groups = [...new Set(appState.allChannels.map(ch => ch.group).filter(Boolean))];
+    groups.sort((a, b) => a.localeCompare(b)); // Sort groups A-Z
+    groups.forEach(group => {
+        const opt = document.createElement("span");
+        opt.className = "custom-option";
+        opt.dataset.value = group;
+        opt.textContent = group;
+        optionsContainer.appendChild(opt);
+    });
+}
+
+function setView(view) {
+    channelList.className = view === 'grid' ? 'grid-view' : 'list-view';
+    gridViewBtn.classList.toggle('active', view === 'grid');
+    listViewBtn.classList.toggle('active', view !== 'grid');
+    localStorage.setItem('preferredView', view);
+}
+
+function showToast(message) {
+    toastNotification.textContent = message;
+    toastNotification.classList.add('show');
+    setTimeout(() => toastNotification.classList.remove('show'), 2500);
+}
+
+function getFavorites() {
+    return JSON.parse(localStorage.getItem('myFavoriteChannels')) || [];
+}
+
+function saveFavorites(favorites) {
+    localStorage.setItem('myFavoriteChannels', JSON.stringify(favorites));
+}
+
+function toggleFavorite(channel) {
+    if (!channel) return;
+    let favorites = getFavorites();
+    const index = favorites.findIndex(fav => fav.url === channel.url);
+    if (index > -1) {
+        favorites.splice(index, 1);
+        showToast(`'${channel.name}' removed from Favorites`);
+    } else {
+        favorites.push(channel);
+        showToast(`'${channel.name}' added to Favorites!`);
+    }
+    saveFavorites(favorites);
+    if (categoryFilter.dataset.value === 'Favorites') setupInitialView();
+}
+
+function playNext() {
+    if (appState.currentFilteredChannels.length < 1) return;
+    const currentItem = appState.allChannels[appState.currentChannelIndex];
+    let currentIndexInFiltered = currentItem ? appState.currentFilteredChannels.findIndex(c => c.url === currentItem.url) : -1;
+    const nextIndexInFiltered = (currentIndexInFiltered + 1) % appState.currentFilteredChannels.length;
+    const nextChannel = appState.currentFilteredChannels[nextIndexInFiltered];
+    if (!nextChannel) return;
+    const nextGlobalIndex = appState.allChannels.findIndex(c => c.url === nextChannel.url);
+    if (nextGlobalIndex > -1) playStream(appState.allChannels[nextGlobalIndex], nextGlobalIndex);
+}
+
+function playPrevious() {
+    if (appState.currentFilteredChannels.length < 1) return;
+    const currentItem = appState.allChannels[appState.currentChannelIndex];
+    let currentIndexInFiltered = currentItem ? appState.currentFilteredChannels.findIndex(c => c.url === currentItem.url) : 0;
+    let prevIndexInFiltered = currentIndexInFiltered - 1;
+    if (prevIndexInFiltered < 0) prevIndexInFiltered = appState.currentFilteredChannels.length - 1;
+    const prevChannel = appState.currentFilteredChannels[prevIndexInFiltered];
+    if (!prevChannel) return;
+    const prevGlobalIndex = appState.allChannels.findIndex(c => c.url === prevChannel.url);
+    if (prevGlobalIndex > -1) playStream(appState.allChannels[prevGlobalIndex], prevGlobalIndex);
+}
+
+// --- New: Gesture Controls for Volume and Brightness in Fullscreen ---
+let touchStartY = 0;
+let touchStartX = 0;
+let isGesturing = false;
+let gestureSide = null; // 'left' or 'right'
+let brightnessIndicator, volumeIndicator;
+
+// Create gesture overlays
+function createGestureOverlays() {
+    const videoWrapper = document.querySelector('.video-section-wrapper');
+    const overlay = document.createElement('div');
+    overlay.className = 'gesture-overlay';
+    overlay.innerHTML = `
+        <div id="brightnessIndicator" class="gesture-indicator" style="display: none;">
+            Brightness: <span id="brightnessValue">100%</span>
+            <div class="progress-bar">
+                <div class="progress" id="brightnessProgress" style="width: 100%;"></div>
+            </div>
+        </div>
+        <div id="volumeIndicator" class="gesture-indicator" style="display: none;">
+            Volume: <span id="volumeValue">100%</span>
+            <div class="progress-bar">
+                <div class="progress" id="volumeProgress" style="width: 100%;"></div>
+            </div>
+        </div>
+    `;
+    videoWrapper.appendChild(overlay);
+    brightnessIndicator = document.getElementById('brightnessIndicator');
+    volumeIndicator = document.getElementById('volumeIndicator');
+}
+
+function handleTouchStart(e) {
+    if (!player.isFullscreen()) return;
+    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX;
+    isGesturing = true;
+    const videoWidth = player.el().offsetWidth;
+    gestureSide = touchStartX < videoWidth / 2 ? 'left' : 'right';
+}
+
+function handleTouchMove(e) {
+    if (!isGesturing || !player.isFullscreen()) return;
+    const touchY = e.touches[0].clientY;
+    const deltaY = touchStartY - touchY; // Positive for up swipe
+    const sensitivity = 2; // Adjust sensitivity (higher = slower change)
+    const change = deltaY / player.el().offsetHeight * sensitivity;
+
+    if (gestureSide === 'left') {
+        // Brightness (left side)
+        appState.brightness = Math.max(0.1, Math.min(2, appState.brightness + change)); // 10% to 200%
+        player.el().style.filter = `brightness(${appState.brightness})`;
+        const percent = Math.round(appState.brightness * 100);
+        document.getElementById('brightnessValue').textContent = `${percent}%`;
+        document.getElementById('brightnessProgress').style.width = `${percent}%`;
+        brightnessIndicator.style.display = 'flex';
+    } else if (gestureSide === 'right') {
+        // Volume (right side)
+        appState.volume = Math.max(0, Math.min(1, appState.volume + change)); // 0 to 100%
+        player.volume(appState.volume);
+        const percent = Math.round(appState.volume * 100);
+        document.getElementById('volumeValue').textContent = `${percent}%`;
+        document.getElementById('volumeProgress').style.width = `${percent}%`;
+        volumeIndicator.style.display = 'flex';
+    }
+}
+
+function handleTouchEnd() {
+    isGesturing = false;
+    setTimeout(() => {
+        brightnessIndicator.style.display = 'none';
+        volumeIndicator.style.display = 'none';
+    }, 1000); // Hide indicators after 1s
+}
+
+// --- Event Listeners ---
+const startPress = (event) => {
+    const channelDiv = event.target.closest('.channel');
+    if (!channelDiv) return;
+    appState.isLongPress = false;
+    appState.pressTimer = setTimeout(() => {
+        appState.isLongPress = true;
+        const channel = appState.allChannels[channelDiv.dataset.index];
+        toggleFavorite(channel);
+    }, 1000);
+};
+const cancelPress = () => clearTimeout(appState.pressTimer);
+const handleClick = (event) => {
+    const channelDiv = event.target.closest('.channel');
+    if (channelDiv && !appState.isLongPress) {
+        const channel = appState.allChannels[channelDiv.dataset.index];
+        if (channel) playStream(channel, parseInt(channelDiv.dataset.index, 10));
+    }
+};
+
+channelList.addEventListener('mousedown', startPress);
+channelList.addEventListener('mouseup', cancelPress);
+channelList.addEventListener('mouseleave', cancelPress);
+channelList.addEventListener('click', handleClick);
+channelList.addEventListener('touchstart', startPress, { passive: true });
+channelList.addEventListener('touchend', cancelPress);
+channelList.addEventListener('touchmove', cancelPress);
+
+channelList.addEventListener('scroll', () => {
+    if (channelList.scrollTop + channelList.clientHeight >= channelList.scrollHeight - 400) {
+        loadMoreChannels();
+    }
 });
+
+player.on('ended', playNext);
+searchInput.addEventListener("input", setupInitialView);
+listViewBtn.addEventListener('click', () => setView('list'));
+gridViewBtn.addEventListener('click', () => setView('grid'));
+prevBtn.addEventListener('click', playPrevious);
+nextBtn.addEventListener('click', playNext);
+
+player.on('fullscreenchange', function() {
+    try {
+        if (player.isFullscreen()) {
+            screen.orientation.lock('landscape');
+        } else {
+            screen.orientation.unlock();
+        }
+    } catch (e) {
+        console.warn("Screen Orientation API not fully supported.", e);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    setView(localStorage.getItem('preferredView') || 'list');
+    initializeCustomSelects();
+    loadAllPlaylists();
+    if (!areAnimationsEnabled) {
+        document.body.classList.add('animations-disabled');
+    }
+    // Adsterra first click ad - logic moved inside the main DOMContentLoaded
+    const adsterraDirectLink = 'https://www.profitableratecpm.com/yrygzszmx?key=b43ea4afe6263aed815797a0ebb4f75d';
+    const storageKey = 'lastAdRedirectTime';
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const lastAdTime = localStorage.getItem(storageKey);
+    const currentTime = new Date().getTime();
+    if (!lastAdTime || (currentTime - lastAdTime > twentyFourHours)) {
+        document.body.addEventListener('click', function handleFirstClick() {
+            window.open(adsterraDirectLink, '_blank');
+            localStorage.setItem(storageKey, currentTime);
+            document.body.removeEventListener('click', handleFirstClick);
+        }, { once: true });
+    }
+
+    // New: Initialize gesture overlays and touch events
+    createGestureOverlays();
+    const videoEl = player.el();
+    videoEl.addEventListener('touchstart', handleTouchStart, { passive: true });
+    videoEl.addEventListener('touchmove', handleTouchMove, { passive: true });
+    videoEl.addEventListener('touchend', handleTouchEnd);
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.target.tagName === 'INPUT') return;
+    switch (event.key) {
+        case 'ArrowRight': playNext(); break;
+        case 'ArrowLeft': playPrevious(); break;
+    }
+});
+
+document.addEventListener('mouseup', (event) => {
+    if (event.button === 3) playPrevious();
+    if (event.button === 4) playNext();
+});
+
+document.getElementById('currentYear').textContent = new Date().getFullYear();
