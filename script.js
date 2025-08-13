@@ -1,8 +1,8 @@
-// --- কনফিগারেশন ---
+// --- Configuration ---
 const isAdGateEnabled = true;
 const areAnimationsEnabled = true;
 
-// --- অ্যাড গেট সিস্টেম ---
+// --- Ad Gate System ---
 document.addEventListener('DOMContentLoaded', () => {
     if (!isAdGateEnabled) {
         const adGateOverlay = document.getElementById('ad-gate-overlay');
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         adWindow.close();
                     } catch (e) {
-                        console.warn("অ্যাড উইন্ডো বন্ধ করা যায়নি।");
+                        console.warn("Could not close ad window.");
                     }
                 }
             }, 1000);
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- এলিমেন্ট রেফারেন্স ---
+// --- Element References ---
 const player = videojs('video', {
     controls: true,
     autoplay: true,
@@ -89,7 +89,7 @@ const matchesSection = document.getElementById('matchesSection');
 const matchesBox = document.getElementById('matchesBox');
 const matchesInner = document.querySelector('.matches-inner');
 
-// --- অ্যাপ স্টেট ---
+// --- App State ---
 const appState = {
     allChannels: [],
     currentFilteredChannels: [],
@@ -102,29 +102,27 @@ const appState = {
     matches: []
 };
 
-// --- পার্সিস্টেন্স কী ---
+// --- Persistence Keys ---
 const LAST_PLAYED_INDEX_KEY = 'lastPlayedChannelIndex';
 const LAST_PLAYBACK_TIME_KEY = 'lastPlaybackTime';
 const THEME_KEY = 'userPreferredTheme';
 
-// --- প্লেলিস্ট URL ---
+// --- Playlist URLs ---
 const playlistUrls = [
-    "//",
+    "https://raw.githubusercontent.com/abusaeeidx/IPTV-Scraper-Zilla/main/CricHD.m3u",
     "streams/channel1.m3u",
     "streams/channels.m3u",
-    "streams/vod.m3u",
     "streams/dirilis-ertugrul.m3u",
     "streams/kurulus-osman.m3u",
     "streams/the-great-seljuk.m3u",
     "streams/alp-arsalan.m3u",
-    "streams/movies.m3u",
     "streams/channel2.m3u",
     "streams/channel3.m3u",
     "streams/al-quran.m3u",
     "streams/al-quran-bangla.m3u",
 ];
 
-// --- লেজি লোডিং ইমেজ ---
+// --- Lazy Loading Images ---
 const lazyImageObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -136,7 +134,7 @@ const lazyImageObserver = new IntersectionObserver((entries, observer) => {
     });
 });
 
-// --- থিম সুইচার লজিক ---
+// --- Theme Switcher Logic ---
 function applyTheme(theme) {
     body.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
@@ -147,7 +145,7 @@ themeToggle.addEventListener('change', () => {
     applyTheme(themeToggle.checked ? 'dark' : 'light');
 });
 
-// --- কাস্টম ড্রপডাউন লজিক ---
+// --- Custom Dropdown Logic ---
 function initializeCustomSelects() {
     window.addEventListener('click', e => {
         document.querySelectorAll('.custom-select.open').forEach(select => {
@@ -181,7 +179,7 @@ function initializeCustomSelects() {
     });
 }
 
-// --- ম্যাচ ক্যারোজেল লজিক ---
+// --- Matches Carousel Logic ---
 function getMatchStatus(startTime, endTime) {
     const now = new Date();
     const start = startTime ? new Date(startTime) : null;
@@ -193,7 +191,7 @@ function getMatchStatus(startTime, endTime) {
 }
 
 function formatCountdown(startTime) {
-    if (!startTime) return 'N/A';
+    if (!startTime) return 'এন/এ';
     const now = new Date();
     const start = new Date(startTime);
     const diff = start - now;
@@ -231,7 +229,7 @@ function renderMatchesCarousel() {
     }
     matchesSection.style.display = 'block';
     matchesInner.innerHTML = '';
-    const matchesToRender = [...appState.matches, ...appState.matches]; // সিমলেস লুপিংয়ের জন্য ডুপ্লিকেট
+    const matchesToRender = [...appState.matches, ...appState.matches];
     matchesToRender.forEach((match, index) => {
         const status = getMatchStatus(match.startTime, match.endTime);
         const countdown = status === 'upcoming' ? formatCountdown(match.startTime) : '';
@@ -243,44 +241,54 @@ function renderMatchesCarousel() {
             <span class="match-name">${match.name}</span>
             <span class="match-status status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
             <span class="countdown-timer">${countdown}</span>
-            <span class="match-time">${match.startTime ? new Date(match.startTime).toLocaleTimeString() : 'N/A'}</span>
+            <span class="match-time">${match.startTime ? new Date(match.startTime).toLocaleTimeString() : 'এন/এ'}</span>
         `;
         matchesInner.appendChild(div);
         const img = div.querySelector('img');
         if (img) lazyImageObserver.observe(img);
         div.addEventListener('click', () => {
             const channelIndex = parseInt(div.dataset.index, 10);
-            playStream(appState.allChannels[channelIndex], channelIndex);
+            if (!isNaN(channelIndex) && appState.allChannels[channelIndex]) {
+                playStream(appState.allChannels[channelIndex], channelIndex);
+            } else {
+                console.error(`Invalid channel index: ${channelIndex}`);
+                showToast("কন্টেন্ট লোড করা যায়নি। আবার চেষ্টা করুন।");
+            }
         });
     });
-    // প্রতি সেকেন্ডে স্ট্যাটাস এবং কাউন্টডাউন আপডেট
     setInterval(updateMatchStatus, 1000);
 }
 
-// --- কোর ফাংশন ---
+// --- Core Functions ---
 async function loadAllPlaylists() {
-    console.log("🚀 সব প্লেলিস্ট লোড শুরু হচ্ছে...");
-    channelList.innerHTML = '⏳ প্লেলিস্ট লোড হচ্ছে...';
+    console.log("Starting to load all playlists...");
+    channelList.innerHTML = 'লোডিং হচ্ছে...';
     try {
-        const promises = playlistUrls.map(url => fetch(url).then(res => {
-            if (!res.ok) throw new Error(`HTTP এরর! স্ট্যাটাস: ${res.status} এর জন্য ${url}`);
-            return res.text();
-        }));
-        const results = await Promise.allSettled(promises);
-        let combinedChannels = [];
-        results.forEach((result, index) => {
-            if (result.status === 'fulfilled' && result.value) {
-                console.log(`✅ প্লেলিস্ট সফলভাবে লোড হয়েছে: ${playlistUrls[index]}`);
-                combinedChannels = combinedChannels.concat(parseM3U(result.value));
-            } else if (result.status === 'rejected') {
-                console.error(`❌ প্লেলিস্ট লোড ফেইল: ${playlistUrls[index]}`, result.reason);
+        const promises = playlistUrls.map(async (url) => {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status} for ${url}`);
+                const text = await res.text();
+                return { url, text };
+            } catch (e) {
+                console.error(`Failed to load playlist: ${url}`, e);
+                return null;
             }
         });
-        console.log(`🎉 মোট চ্যানেল পার্স করা হয়েছে: ${combinedChannels.length}`);
+        const results = await Promise.all(promises);
+        let combinedChannels = [];
+        results.forEach(result => {
+            if (result) {
+                console.log(`Playlist loaded successfully: ${result.url}`);
+                combinedChannels = combinedChannels.concat(parseM3U(result.text, result.url));
+            }
+        });
+        combinedChannels.forEach((ch, index) => ch.index = index);
+        console.log(`Total channels parsed: ${combinedChannels.length}`);
         appState.allChannels = combinedChannels;
         appState.matches = combinedChannels.filter(ch => ch.startTime && ch.endTime);
         if (appState.allChannels.length === 0) {
-            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">কোনো চ্যানেল লোড করা যায়নি। নেটওয়ার্ক চেক করুন বা কনসোল দেখুন।</div>`;
+            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">কোনো চ্যানেল লোড করা যায়নি। নেটওয়ার্ক চেক করুন।</div>`;
             return;
         }
         populateCategories();
@@ -288,12 +296,12 @@ async function loadAllPlaylists() {
         renderMatchesCarousel();
         restoreLastSession();
     } catch (error) {
-        console.error("প্লেলিস্ট লোডিংয়ে গুরুতর ত্রুটি:", error);
-        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">গুরুতর ত্রুটি। কনসোল চেক করুন।</div>`;
+        console.error("Critical error during playlist loading:", error);
+        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">ত্রুটি হয়েছে। কনসোল চেক করুন।</div>`;
     }
 }
 
-function parseM3U(data) {
+function parseM3U(data, url) {
     const lines = data.split("\n");
     let channels = [];
     let currentChannel = null;
@@ -311,17 +319,18 @@ function parseM3U(data) {
                 const endTimeMatch = meta.match(/tvg-end="([^"]*)"/);
 
                 currentChannel = {
-                    name: nameMatch ? nameMatch[1].trim().split('|')[0] : "Unnamed Channel",
+                    name: nameMatch ? nameMatch[1].trim().split('|')[0] : "নামহীন কন্টেন্ট",
                     logo: logoMatch ? logoMatch[1] : "",
-                    group: groupMatch ? groupMatch[1].trim() : "General",
+                    group: groupMatch ? groupMatch[1].trim() : "সাধারণ",
                     type: typeMatch ? typeMatch[1].trim() : "stream",
                     url: null,
                     userAgent: null,
                     startTime: startTimeMatch ? startTimeMatch[1] : null,
                     endTime: endTimeMatch ? endTimeMatch[1] : null
                 };
+                console.log(`Parsed channel: ${currentChannel.name}, Type: ${currentChannel.type}, Logo: ${currentChannel.logo}, Group: ${currentChannel.group}`);
             } catch (e) {
-                console.warn("একটি ত্রুটিপূর্ণ M3U এন্ট্রি স্কিপ করা হয়েছে।", e);
+                console.warn("Skipping a malformed M3U entry.", e);
                 currentChannel = null;
             }
         } else if (line.startsWith("#EXTVLCOPT:http-user-agent=") && currentChannel) {
@@ -331,22 +340,28 @@ function parseM3U(data) {
             }
         } else if (line && !line.startsWith('#') && currentChannel) {
             let channelURL = line;
-            if (line.includes("|<iframe")) {
+            const isIframe = currentChannel.type === "iframe" || line.includes("|<iframe");
+            if (isIframe) {
                 const parts = line.split("|<iframe");
                 channelURL = parts[0].trim();
-                const iframeTag = "<iframe" + parts[1];
-                const srcMatch = iframeTag.match(/src="([^"]*)"/);
-                if (srcMatch && srcMatch[1]) {
-                    channelURL = srcMatch[1];
-                    currentChannel.type = "iframe";
+                if (parts[1]) {
+                    const iframeTag = "<iframe" + parts[1];
+                    const srcMatch = iframeTag.match(/src="([^"]*)"/);
+                    if (srcMatch && srcMatch[1]) {
+                        channelURL = srcMatch[1];
+                        currentChannel.type = "iframe";
+                    }
                 }
+            } else if (channelURL.match(/\.(m3u8|mp4|webm|mp3)$/i)) {
+                currentChannel.type = "stream";
+            } else {
+                currentChannel.type = "iframe";
             }
             currentChannel.url = channelURL;
             channels.push(currentChannel);
             currentChannel = null;
         }
     }
-    channels.forEach((ch, index) => ch.index = index);
     return channels;
 }
 
@@ -366,7 +381,7 @@ function setupInitialView() {
     if (sortOrder === 'az') {
         tempChannels.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortOrder === 'za') {
-        tempChannels.sort((a, b) => b.name.localeCompare(b.name));
+        tempChannels.sort((a, b) => b.name.localeCompare(a.name));
     }
     appState.currentFilteredChannels = tempChannels;
     channelList.innerHTML = "";
@@ -381,7 +396,7 @@ function loadMoreChannels() {
     const startIndex = (appState.pageToLoad - 1) * appState.CHANNELS_PER_LOAD;
     const channelsToRender = appState.currentFilteredChannels.slice(startIndex, startIndex + appState.CHANNELS_PER_LOAD);
     if (channelsToRender.length === 0 && appState.pageToLoad === 1) {
-        channelList.innerHTML = `<div style="padding: 20px; text-align: center;">কোনো কনটেন্ট পাওয়া যায়নি।</div>`;
+        channelList.innerHTML = `<div style="padding: 20px; text-align: center;">কোনো কন্টেন্ট পাওয়া যায়নি।</div>`;
     }
     channelsToRender.forEach(ch => {
         const div = document.createElement("div");
@@ -407,8 +422,12 @@ function loadMoreChannels() {
 }
 
 function playStream(channel, index) {
-    if (!channel) return;
-    if (channel.name) document.title = `${channel.name} - Streaming`;
+    if (!channel || isNaN(index)) {
+        console.error("Invalid channel or index:", channel, index);
+        showToast("কন্টেন্ট লোড করা যায়নি। আবার চেষ্টা করুন।");
+        return;
+    }
+    if (channel.name) document.title = `${channel.name} - স্ট্রিমিং`;
     appState.currentChannelIndex = index;
     localStorage.setItem(LAST_PLAYED_INDEX_KEY, index);
     document.querySelector('.channel.is-playing')?.classList.remove('is-playing', 'active');
@@ -426,15 +445,21 @@ function playStream(channel, index) {
         
         const source = {
             src: channel.url,
-            type: 'application/x-mpegURL'
+            type: channel.url.match(/\.mp4$/i) ? 'video/mp4' : 
+                  channel.url.match(/\.webm$/i) ? 'video/webm' : 
+                  channel.url.match(/\.mp3$/i) ? 'audio/mp3' : 'application/x-mpegURL'
         };
         if (channel.userAgent) {
             source.headers = {
                 'User-Agent': channel.userAgent
             };
         }
-        
+        player.reset();
         player.src(source);
+        player.play().catch(e => {
+            console.error("Error playing stream:", e);
+            showToast("কন্টেন্ট প্লে করা যায়নি। কনসোল চেক করুন।");
+        });
         player.one('loadedmetadata', () => {
             const qualityLevels = player.qualityLevels();
             renderQualitySelector(qualityLevels);
@@ -456,9 +481,10 @@ function playStream(channel, index) {
 function setupIframeEndDetection(channel, index) {
     setTimeout(() => {
         if (iframeContainer.style.display === 'block' && appState.currentChannelIndex === index) {
+            showToast("কন্টেন্ট শেষ হয়েছে। পরের কন্টেন্ট চালু হচ্ছে...");
             playNext();
         }
-    }, 300000); // ৫ মিনিট
+    }, 300000); // 5 minutes
 }
 
 function restoreLastSession() {
@@ -589,7 +615,7 @@ function playPrevious() {
     }
 }
 
-// --- ইভেন্ট লিসেনার ---
+// --- Event Listeners ---
 let isScrolling = false;
 
 const startPress = (event) => {
@@ -614,9 +640,11 @@ const handleClick = (event) => {
     const channelDiv = event.target.closest('.channel');
     if (channelDiv && !appState.isLongPress && !isScrolling) {
         const channelIndex = parseInt(channelDiv.dataset.index, 10);
-        if (!isNaN(channelIndex)) {
-            const channel = appState.allChannels[channelIndex];
-            if (channel) playStream(channel, channelIndex);
+        if (!isNaN(channelIndex) && appState.allChannels[channelIndex]) {
+            playStream(appState.allChannels[channelIndex], channelIndex);
+        } else {
+            console.error(`Invalid channel index: ${channelIndex}`);
+            showToast("কন্টেন্ট লোড করা যায়নি। আবার চেষ্টা করুন।");
         }
     }
     appState.isLongPress = false;
@@ -644,7 +672,14 @@ channelList.addEventListener('scroll', () => {
 player.on('ended', () => {
     localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
     localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
+    showToast("কন্টেন্ট শেষ হয়েছে। পরের কন্টেন্ট চালু হচ্ছে...");
     playNext();
+});
+
+player.on('error', () => {
+    localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
+    localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
+    showToast("কন্টেন্ট লোড করা যায়নি। অন্য একটি সিলেক্ট করুন।");
 });
 
 let lastTimeUpdate = 0;
@@ -692,7 +727,7 @@ function handleFullscreenChange() {
             }
         }
     } catch (e) {
-        console.warn("স্ক্রিন ওরিয়েন্টেশন API সম্পূর্ণ সাপোর্টেড নয়।", e);
+        console.warn("Screen Orientation API not fully supported.", e);
     }
 }
 
