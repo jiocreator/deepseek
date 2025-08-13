@@ -47,6 +47,7 @@ const THEME_KEY = 'userPreferredTheme';
 
 // --- Playlist URLs ---
 const playlistUrls = [
+    "https://raw.githubusercontent.com/jiocreator/io/refs/heads/main/live-events.m3u",
     "https://raw.githubusercontent.com/abusaeeidx/IPTV-Scraper-Zilla/main/CricHD.m3u",
     // Add other playlist URLs here
 ];
