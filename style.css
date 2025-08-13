@@ -281,6 +281,23 @@ Generic Component Styles (Uses CSS Variables)
 }
 
 /* --- Matches Carousel Styles --- */
+/* ম্যাচ ক্যারোজেলে কাউন্টডাউন স্টাইল */
+.match-item .countdown-timer {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    font-weight: bold;
+    margin-left: 0.5rem;
+}
+
+.match-item .match-status.status-upcoming {
+    color: orange;
+}
+.match-item .match-status.status-ongoing {
+    color: green;
+}
+.match-item .match-status.status-ended {
+    color: red;
+}
 .matches-section-wrapper {
     display: flex;
     flex-direction: column;
