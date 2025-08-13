@@ -1,8 +1,8 @@
-// --- Configuration ---
+// --- কনফিগারেশন ---
 const isAdGateEnabled = true;
 const areAnimationsEnabled = true;
 
-// --- Ad Gate System ---
+// --- অ্যাড গেট সিস্টেম ---
 document.addEventListener('DOMContentLoaded', () => {
     if (!isAdGateEnabled) {
         const adGateOverlay = document.getElementById('ad-gate-overlay');
@@ -23,19 +23,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         unlockButton.addEventListener('click', () => {
             const adWindow = window.open(adLink, '_blank');
-            unlockButton.textContent = "Please wait 10 seconds...";
+            if (!adWindow) {
+                alert("পপ-আপ ব্লক করা হয়েছে। পপ-আপ অনুমতি দিন এবং আবার চেষ্টা করুন।");
+                return;
+            }
+            unlockButton.textContent = "দয়া করে ১০ সেকেন্ড অপেক্ষা করুন...";
             unlockButton.disabled = true;
             let timeWaited = 0;
             const requiredWaitTime = 10;
             const timer = setInterval(() => {
                 if (!adWindow || adWindow.closed) {
                     clearInterval(timer);
-                    alert("Please do not close the ad page before 10 seconds.");
+                    alert("দয়া করে অ্যাড পেজটি ১০ সেকেন্ডের আগে বন্ধ করবেন না।");
                     window.location.href = adLink;
                     return;
                 }
                 timeWaited++;
-                unlockButton.textContent = `Waiting... ${requiredWaitTime - timeWaited}s`;
+                unlockButton.textContent = `অপেক্ষা করুন... ${requiredWaitTime - timeWaited}সে`;
                 if (timeWaited >= requiredWaitTime) {
                     clearInterval(timer);
                     localStorage.setItem(storageKey, new Date().getTime());
@@ -43,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         adWindow.close();
                     } catch (e) {
-                        console.warn("Could not close ad window.");
+                        console.warn("অ্যাড উইন্ডো বন্ধ করা যায়নি।");
                     }
                 }
             }, 1000);
@@ -51,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- Element References ---
+// --- এলিমেন্ট রেফারেন্স ---
 const player = videojs('video', {
     controls: true,
     autoplay: true,
@@ -85,7 +89,7 @@ const matchesSection = document.getElementById('matchesSection');
 const matchesBox = document.getElementById('matchesBox');
 const matchesInner = document.querySelector('.matches-inner');
 
-// --- App State ---
+// --- অ্যাপ স্টেট ---
 const appState = {
     allChannels: [],
     currentFilteredChannels: [],
@@ -94,16 +98,16 @@ const appState = {
     currentChannelIndex: -1,
     pressTimer: null,
     isLongPress: false,
-    CHANNELS_PER_LOAD: 40,
+    CHANNELS_PER_LOAD: 20,
     matches: []
 };
 
-// --- Persistence Keys ---
+// --- পার্সিস্টেন্স কী ---
 const LAST_PLAYED_INDEX_KEY = 'lastPlayedChannelIndex';
 const LAST_PLAYBACK_TIME_KEY = 'lastPlaybackTime';
 const THEME_KEY = 'userPreferredTheme';
 
-// --- Playlist URLs ---
+// --- প্লেলিস্ট URL ---
 const playlistUrls = [
     "https://raw.githubusercontent.com/abusaeeidx/IPTV-Scraper-Zilla/main/CricHD.m3u",
     "streams/channel1.m3u",
@@ -120,7 +124,7 @@ const playlistUrls = [
     "streams/al-quran-bangla.m3u",
 ];
 
-// --- Lazy Loading Images ---
+// --- লেজি লোডিং ইমেজ ---
 const lazyImageObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -132,7 +136,7 @@ const lazyImageObserver = new IntersectionObserver((entries, observer) => {
     });
 });
 
-// --- Theme Switcher Logic ---
+// --- থিম সুইচার লজিক ---
 function applyTheme(theme) {
     body.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
@@ -143,7 +147,7 @@ themeToggle.addEventListener('change', () => {
     applyTheme(themeToggle.checked ? 'dark' : 'light');
 });
 
-// --- Custom Dropdown Logic ---
+// --- কাস্টম ড্রপডাউন লজিক ---
 function initializeCustomSelects() {
     window.addEventListener('click', e => {
         document.querySelectorAll('.custom-select.open').forEach(select => {
@@ -177,21 +181,60 @@ function initializeCustomSelects() {
     });
 }
 
-// --- Matches Carousel Logic ---
+// --- ম্যাচ ক্যারোজেল লজিক ---
 function getMatchStatus(startTime, endTime) {
     const now = new Date();
-    const start = new Date(startTime);
-    const end = new Date(endTime);
+    const start = startTime ? new Date(startTime) : null;
+    const end = endTime ? new Date(endTime) : null;
+    if (!start || !end) return 'unknown';
     if (now < start) return 'upcoming';
     if (now >= start && now <= end) return 'ongoing';
     return 'ended';
 }
 
+function formatCountdown(startTime) {
+    if (!startTime) return 'N/A';
+    const now = new Date();
+    const start = new Date(startTime);
+    const diff = start - now;
+    if (diff <= 0) return '';
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    return `${hours > 0 ? hours + 'ঘণ্টা ' : ''}${minutes > 0 ? minutes + 'মিনিট ' : ''}${seconds}সে`;
+}
+
+function updateMatchStatus() {
+    const matchItems = matchesInner.querySelectorAll('.match-item');
+    matchItems.forEach(item => {
+        const index = parseInt(item.dataset.index, 10);
+        const match = appState.matches.find(m => m.index === index);
+        if (match) {
+            const status = getMatchStatus(match.startTime, match.endTime);
+            const statusElement = item.querySelector('.match-status');
+            const countdownElement = item.querySelector('.countdown-timer');
+            statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            statusElement.className = `match-status status-${status}`;
+            if (status === 'upcoming') {
+                countdownElement.textContent = formatCountdown(match.startTime);
+            } else {
+                countdownElement.textContent = '';
+            }
+        }
+    });
+}
+
 function renderMatchesCarousel() {
+    if (!appState.matches.length) {
+        matchesSection.style.display = 'none';
+        return;
+    }
+    matchesSection.style.display = 'block';
     matchesInner.innerHTML = '';
-    const matchesToRender = [...appState.matches, ...appState.matches]; // Duplicate for seamless looping
+    const matchesToRender = [...appState.matches, ...appState.matches]; // সিমলেস লুপিংয়ের জন্য ডুপ্লিকেট
     matchesToRender.forEach((match, index) => {
         const status = getMatchStatus(match.startTime, match.endTime);
+        const countdown = status === 'upcoming' ? formatCountdown(match.startTime) : '';
         const div = document.createElement('div');
         div.className = 'match-item';
         div.dataset.index = match.index;
@@ -199,43 +242,45 @@ function renderMatchesCarousel() {
             <img src="${match.logo || 'https://via.placeholder.com/40'}" alt="${match.name}" class="lazy">
             <span class="match-name">${match.name}</span>
             <span class="match-status status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
-            <span class="match-time">${new Date(match.startTime).toLocaleTimeString()}</span>
+            <span class="countdown-timer">${countdown}</span>
+            <span class="match-time">${match.startTime ? new Date(match.startTime).toLocaleTimeString() : 'N/A'}</span>
         `;
         matchesInner.appendChild(div);
         const img = div.querySelector('img');
         if (img) lazyImageObserver.observe(img);
         div.addEventListener('click', () => {
-            matchesSection.style.display = 'none';
             const channelIndex = parseInt(div.dataset.index, 10);
             playStream(appState.allChannels[channelIndex], channelIndex);
         });
     });
+    // প্রতি সেকেন্ডে স্ট্যাটাস এবং কাউন্টডাউন আপডেট
+    setInterval(updateMatchStatus, 1000);
 }
 
-// --- Core Functions ---
+// --- কোর ফাংশন ---
 async function loadAllPlaylists() {
-    console.log("🚀 Starting to load all playlists...");
-    channelList.innerHTML = '⏳ Loading Playlists...';
+    console.log("🚀 সব প্লেলিস্ট লোড শুরু হচ্ছে...");
+    channelList.innerHTML = '⏳ প্লেলিস্ট লোড হচ্ছে...';
     try {
         const promises = playlistUrls.map(url => fetch(url).then(res => {
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status} for ${url}`);
+            if (!res.ok) throw new Error(`HTTP এরর! স্ট্যাটাস: ${res.status} এর জন্য ${url}`);
             return res.text();
         }));
         const results = await Promise.allSettled(promises);
         let combinedChannels = [];
         results.forEach((result, index) => {
             if (result.status === 'fulfilled' && result.value) {
-                console.log(`✅ Playlist loaded successfully: ${playlistUrls[index]}`);
+                console.log(`✅ প্লেলিস্ট সফলভাবে লোড হয়েছে: ${playlistUrls[index]}`);
                 combinedChannels = combinedChannels.concat(parseM3U(result.value));
             } else if (result.status === 'rejected') {
-                console.error(`❌ FAILED to load playlist: ${playlistUrls[index]}`, result.reason);
+                console.error(`❌ প্লেলিস্ট লোড ফেইল: ${playlistUrls[index]}`, result.reason);
             }
         });
-        console.log(`🎉 Total channels parsed: ${combinedChannels.length}`);
+        console.log(`🎉 মোট চ্যানেল পার্স করা হয়েছে: ${combinedChannels.length}`);
         appState.allChannels = combinedChannels;
         appState.matches = combinedChannels.filter(ch => ch.startTime && ch.endTime);
         if (appState.allChannels.length === 0) {
-            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">Could not load any channels. Please check network connection or console for errors.</div>`;
+            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">কোনো চ্যানেল লোড করা যায়নি। নেটওয়ার্ক চেক করুন বা কনসোল দেখুন।</div>`;
             return;
         }
         populateCategories();
@@ -243,8 +288,8 @@ async function loadAllPlaylists() {
         renderMatchesCarousel();
         restoreLastSession();
     } catch (error) {
-        console.error("A critical error occurred during playlist loading:", error);
-        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">A critical error occurred. Please check console.</div>`;
+        console.error("প্লেলিস্ট লোডিংয়ে গুরুতর ত্রুটি:", error);
+        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">গুরুতর ত্রুটি। কনসোল চেক করুন।</div>`;
     }
 }
 
@@ -276,7 +321,7 @@ function parseM3U(data) {
                     endTime: endTimeMatch ? endTimeMatch[1] : null
                 };
             } catch (e) {
-                console.warn("Skipping a malformed M3U entry.", e);
+                console.warn("একটি ত্রুটিপূর্ণ M3U এন্ট্রি স্কিপ করা হয়েছে।", e);
                 currentChannel = null;
             }
         } else if (line.startsWith("#EXTVLCOPT:http-user-agent=") && currentChannel) {
@@ -321,7 +366,7 @@ function setupInitialView() {
     if (sortOrder === 'az') {
         tempChannels.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortOrder === 'za') {
-        tempChannels.sort((a, b) => b.name.localeCompare(a.name));
+        tempChannels.sort((a, b) => b.name.localeCompare(b.name));
     }
     appState.currentFilteredChannels = tempChannels;
     channelList.innerHTML = "";
@@ -336,7 +381,7 @@ function loadMoreChannels() {
     const startIndex = (appState.pageToLoad - 1) * appState.CHANNELS_PER_LOAD;
     const channelsToRender = appState.currentFilteredChannels.slice(startIndex, startIndex + appState.CHANNELS_PER_LOAD);
     if (channelsToRender.length === 0 && appState.pageToLoad === 1) {
-        channelList.innerHTML = `<div style="padding: 20px; text-align: center;">No content found.</div>`;
+        channelList.innerHTML = `<div style="padding: 20px; text-align: center;">কোনো কনটেন্ট পাওয়া যায়নি।</div>`;
     }
     channelsToRender.forEach(ch => {
         const div = document.createElement("div");
@@ -409,13 +454,11 @@ function playStream(channel, index) {
 }
 
 function setupIframeEndDetection(channel, index) {
-    // Simulate end detection for iframe (since iframe content is external)
-    // This is a workaround; actual end detection depends on iframe content
     setTimeout(() => {
         if (iframeContainer.style.display === 'block' && appState.currentChannelIndex === index) {
             playNext();
         }
-    }, 300000); // Assume 5 minutes for demo purposes; adjust as needed
+    }, 300000); // ৫ মিনিট
 }
 
 function restoreLastSession() {
@@ -431,9 +474,7 @@ function restoreLastSession() {
             }
             player.play();
         });
-        showToast(`Resuming: ${channelToRestore.name}`);
-    } else {
-        matchesSection.style.display = 'block';
+        showToast(`পুনরায় চালু হচ্ছে: ${channelToRestore.name}`);
     }
 }
 
@@ -443,10 +484,10 @@ function renderQualitySelector(qualityLevels) {
     if (validLevels.length <= 1) return;
     validLevels.sort((a, b) => a.height - b.height);
     const autoBtn = document.createElement("button");
-    autoBtn.textContent = "Auto";
+    autoBtn.textContent = "অটো";
     autoBtn.onclick = () => {
         for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = true;
-        showToast('Auto quality selected');
+        showToast('অটো কোয়ালিটি নির্বাচিত');
     };
     qualitySelector.appendChild(autoBtn);
     validLevels.forEach(level => {
@@ -455,7 +496,7 @@ function renderQualitySelector(qualityLevels) {
         btn.onclick = () => {
             for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = false;
             level.enabled = true;
-            showToast(`${level.height}p quality selected`);
+            showToast(`${level.height}p কোয়ালিটি নির্বাচিত`);
         };
         qualitySelector.appendChild(btn);
     });
@@ -467,12 +508,12 @@ function populateCategories() {
     const allOpt = document.createElement("span");
     allOpt.className = "custom-option selected";
     allOpt.dataset.value = "";
-    allOpt.textContent = "All Categories";
+    allOpt.textContent = "সব ক্যাটাগরি";
     optionsContainer.appendChild(allOpt);
     const favOpt = document.createElement("span");
     favOpt.className = "custom-option";
     favOpt.dataset.value = "Favorites";
-    favOpt.textContent = "⭐ Favorites";
+    favOpt.textContent = "⭐ ফেভারিট";
     optionsContainer.appendChild(favOpt);
     const groups = [...new Set(appState.allChannels.map(ch => ch.group).filter(Boolean))];
     groups.sort((a, b) => a.localeCompare(b));
@@ -512,10 +553,10 @@ function toggleFavorite(channel) {
     const index = favorites.findIndex(fav => fav.url === channel.url);
     if (index > -1) {
         favorites.splice(index, 1);
-        showToast(`'${channel.name}' removed from Favorites`);
+        showToast(`'${channel.name}' ফেভারিট থেকে সরানো হয়েছে`);
     } else {
         favorites.push(channel);
-        showToast(`'${channel.name}' added to Favorites!`);
+        showToast(`'${channel.name}' ফেভারিটে যোগ করা হয়েছে!`);
     }
     saveFavorites(favorites);
     if (categoryFilter.dataset.value === 'Favorites') setupInitialView();
@@ -530,7 +571,6 @@ function playNext() {
     if (!nextChannel) return;
     const nextGlobalIndex = appState.allChannels.findIndex(c => c.url === nextChannel.url && c.name === nextChannel.name);
     if (nextGlobalIndex > -1) {
-        matchesSection.style.display = 'none';
         playStream(appState.allChannels[nextGlobalIndex], nextGlobalIndex);
     }
 }
@@ -545,12 +585,11 @@ function playPrevious() {
     if (!prevChannel) return;
     const prevGlobalIndex = appState.allChannels.findIndex(c => c.url === prevChannel.url && c.name === prevChannel.name);
     if (prevGlobalIndex > -1) {
-        matchesSection.style.display = 'none';
         playStream(appState.allChannels[prevGlobalIndex], prevGlobalIndex);
     }
 }
 
-// --- Event Listeners ---
+// --- ইভেন্ট লিসেনার ---
 let isScrolling = false;
 
 const startPress = (event) => {
@@ -576,7 +615,6 @@ const handleClick = (event) => {
     if (channelDiv && !appState.isLongPress && !isScrolling) {
         const channelIndex = parseInt(channelDiv.dataset.index, 10);
         if (!isNaN(channelIndex)) {
-            matchesSection.style.display = 'none';
             const channel = appState.allChannels[channelIndex];
             if (channel) playStream(channel, channelIndex);
         }
@@ -654,7 +692,7 @@ function handleFullscreenChange() {
             }
         }
     } catch (e) {
-        console.warn("Screen Orientation API not fully supported.", e);
+        console.warn("স্ক্রিন ওরিয়েন্টেশন API সম্পূর্ণ সাপোর্টেড নয়।", e);
     }
 }
 
