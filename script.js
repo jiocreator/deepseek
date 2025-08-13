@@ -1,15 +1,62 @@
 // --- Configuration ---
-const isAdGateEnabled = false;
+const isAdGateEnabled = true;
 const areAnimationsEnabled = true;
+
+// --- Element References ---
+const player = videojs('video', { controls: true, autoplay: true, preload: 'auto', fluid: true, html5: { vhs: { overrideNative: true, withCredentials: false } } });
+const channelList = document.getElementById("channelList");
+const searchInput = document.getElementById("search");
+const qualitySelector = document.getElementById("qualitySelector");
+const listViewBtn = document.getElementById("listViewBtn");
+const gridViewBtn = document.getElementById("gridViewBtn");
+const toastNotification = document.getElementById("toastNotification");
+const loadingSpinner = document.getElementById("loadingSpinner");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const categoryFilter = document.getElementById("categoryFilter");
+const sortSelector = document.getElementById("sortSelector");
+const themeToggle = document.getElementById('themeToggle');
+const body = document.body;
+const iframeEl = document.getElementById('iframePlayer');
+const iframeContainer = document.getElementById('iframeContainer');
+const customFullscreenBtn = document.getElementById('customFullscreenBtn');
+const adGateOverlay = document.getElementById('ad-gate-overlay');
+const unlockButton = document.getElementById('unlockButton');
+// NEW: Match Spotlight elements
+const matchSpotlightOverlay = document.getElementById('match-spotlight-overlay');
+const matchSpotlightList = document.getElementById('match-spotlight-list');
+const skipSpotlightBtn = document.getElementById('skipSpotlightBtn');
+
+// --- App State ---
+const appState = {
+    allChannels: [],
+    currentFilteredChannels: [],
+    pageToLoad: 1,
+    isLoading: false,
+    currentChannelIndex: -1,
+    pressTimer: null,
+    isLongPress: false,
+    CHANNELS_PER_LOAD: 40,
+    matchUpdateInterval: null,
+};
+
+// --- Persistence Keys ---
+const LAST_PLAYED_INDEX_KEY = 'lastPlayedChannelIndex';
+const LAST_PLAYBACK_TIME_KEY = 'lastPlaybackTime';
+const THEME_KEY = 'userPreferredTheme';
+
+// --- Playlist URLs ---
+const playlistUrls = [
+    "https://raw.githubusercontent.com/abusaeeidx/IPTV-Scraper-Zilla/main/CricHD.m3u",
+    // Add other playlist URLs here
+];
 
 // --- Ad Gate System ---
 document.addEventListener('DOMContentLoaded', () => {
     if (!isAdGateEnabled) {
-        const adGateOverlay = document.getElementById('ad-gate-overlay');
-        if (adGateOverlay) adGateOverlay.style.display = 'none';
+        adGateOverlay.style.display = 'none';
+        runPostAdGateLogic();
     } else {
-        const adGateOverlay = document.getElementById('ad-gate-overlay');
-        const unlockButton = document.getElementById('unlockButton');
         const adLink = 'https://www.profitableratecpm.com/yrygzszmx?key=b43ea4afe6263aed815797a0ebb4f75d';
         const storageKey = 'lastAdUnlockTime';
         const twentyFourHours = 24 * 60 * 60 * 1000;
@@ -18,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (lastUnlockTime && (currentTime - lastUnlockTime < twentyFourHours)) {
             adGateOverlay.style.display = 'none';
+            runPostAdGateLogic();
         } else {
             adGateOverlay.style.display = 'flex';
         }
@@ -40,79 +88,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(timer);
                     localStorage.setItem(storageKey, new Date().getTime());
                     adGateOverlay.style.display = 'none';
-                    try {
-                        adWindow.close();
-                    } catch (e) {
-                        console.warn("Could not close ad window.");
-                    }
+                    if (adWindow) try { adWindow.close(); } catch (e) {}
+                    runPostAdGateLogic();
                 }
             }, 1000);
         });
     }
 });
 
-// --- Element References ---
-const player = videojs('video', {
-    controls: true,
-    autoplay: true,
-    preload: 'auto',
-    fluid: true,
-    html5: {
-        vhs: {
-            overrideNative: true,
-            withCredentials: false
-        }
+function runPostAdGateLogic() {
+    const specialMatches = appState.allChannels
+        .filter(ch => ch.startTime && ch.endTime && new Date(ch.endTime) > new Date())
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+    if (specialMatches.length > 0) {
+        displayMatchSpotlight(specialMatches);
+    } else {
+        showMainContent();
     }
-});
+}
 
-const channelList = document.getElementById("channelList");
-const searchInput = document.getElementById("search");
-const qualitySelector = document.getElementById("qualitySelector");
-const listViewBtn = document.getElementById("listViewBtn");
-const gridViewBtn = document.getElementById("gridViewBtn");
-const toastNotification = document.getElementById("toastNotification");
-const loadingSpinner = document.getElementById("loadingSpinner");
-const prevBtn = document.getElementById("prevBtn");
-const nextBtn = document.getElementById("nextBtn");
-const categoryFilter = document.getElementById("categoryFilter");
-const sortSelector = document.getElementById("sortSelector");
-const themeToggle = document.getElementById('themeToggle');
-const body = document.body;
-const iframeEl = document.getElementById('iframePlayer');
-const iframeContainer = document.getElementById('iframeContainer');
-const customFullscreenBtn = document.getElementById('customFullscreenBtn');
-
-// --- App State ---
-const appState = {
-    allChannels: [],
-    currentFilteredChannels: [],
-    pageToLoad: 1,
-    isLoading: false,
-    currentChannelIndex: -1,
-    pressTimer: null,
-    isLongPress: false,
-    CHANNELS_PER_LOAD: 40
-};
-
-// --- Persistence Keys ---
-const LAST_PLAYED_INDEX_KEY = 'lastPlayedChannelIndex';
-const LAST_PLAYBACK_TIME_KEY = 'lastPlaybackTime';
-const THEME_KEY = 'userPreferredTheme';
-
-// --- Playlist URLs ---
-const playlistUrls = [
-    "https://raw.githubusercontent.com/abusaeeidx/IPTV-Scraper-Zilla/main/CricHD.m3u",
-    "https://raw.githubusercontent.com/jiocreator/streaming/refs/heads/main/streams/live-events.m3u",
-    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/channel1.m3u",
-    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/channels.m3u",
-    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/vod.m3u",
-    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/movies.m3u",
-    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/dirilis-ertugrul.m3u",
-    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/kurulus-osman.m3u",
-    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/alp-arsalan.m3u",
-    "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/the-great-seljuk.m3u",
-      "https://cdn.jsdelivr.net/gh/jiocreator/streaming@main/streams/quran-bangla.m3u",
-];
+function showMainContent() {
+    matchSpotlightOverlay.classList.add('hidden');
+    body.classList.remove('player-focused-mode');
+    populateCategories();
+    setupInitialView();
+    restoreLastSession();
+}
 
 // --- Lazy Loading Images ---
 const lazyImageObserver = new IntersectionObserver((entries, observer) => {
@@ -133,17 +135,11 @@ function applyTheme(theme) {
     themeToggle.checked = theme === 'dark';
 }
 
-themeToggle.addEventListener('change', () => {
-    applyTheme(themeToggle.checked ? 'dark' : 'light');
-});
-
 // --- Custom Dropdown Logic ---
 function initializeCustomSelects() {
     window.addEventListener('click', e => {
         document.querySelectorAll('.custom-select.open').forEach(select => {
-            if (!select.contains(e.target)) {
-                select.classList.remove('open');
-            }
+            if (!select.contains(e.target)) select.classList.remove('open');
         });
     });
     document.querySelectorAll('.custom-select-wrapper').forEach(wrapper => {
@@ -151,7 +147,7 @@ function initializeCustomSelects() {
         const optionsContainer = wrapper.querySelector('.custom-options');
         const selectContainer = wrapper.querySelector('.custom-select');
 
-        trigger.addEventListener('click', (e) => {
+        trigger.addEventListener('click', e => {
             e.stopPropagation();
             document.querySelectorAll('.custom-select.open').forEach(openSelect => {
                 if (openSelect !== selectContainer) openSelect.classList.remove('open');
@@ -174,7 +170,6 @@ function initializeCustomSelects() {
 // --- Core Functions ---
 async function loadAllPlaylists() {
     console.log("🚀 Starting to load all playlists...");
-    channelList.innerHTML = '⏳ Loading Playlists...';
     try {
         const promises = playlistUrls.map(url => fetch(url).then(res => {
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status} for ${url}`);
@@ -184,7 +179,6 @@ async function loadAllPlaylists() {
         let combinedChannels = [];
         results.forEach((result, index) => {
             if (result.status === 'fulfilled' && result.value) {
-                console.log(`✅ Playlist loaded successfully: ${playlistUrls[index]}`);
                 combinedChannels = combinedChannels.concat(parseM3U(result.value));
             } else if (result.status === 'rejected') {
                 console.error(`❌ FAILED to load playlist: ${playlistUrls[index]}`, result.reason);
@@ -192,20 +186,16 @@ async function loadAllPlaylists() {
         });
         console.log(`🎉 Total channels parsed: ${combinedChannels.length}`);
         appState.allChannels = combinedChannels;
-        if (appState.allChannels.length === 0) {
-            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">Could not load any channels. Please check network connection or console for errors.</div>`;
-            return;
-        }
-        populateCategories();
-        setupInitialView();
-        restoreLastSession();
+        
+        // This function is now called after the ad-gate logic
+        // runPostAdGateLogic(); 
+        
     } catch (error) {
         console.error("A critical error occurred during playlist loading:", error);
-        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">A critical error occurred. Please check console.</div>`;
+        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">A critical error occurred.</div>`;
     }
 }
 
-// --- UPDATED M3U PARSING LOGIC ---
 function parseM3U(data) {
     const lines = data.split("\n");
     let channels = [];
@@ -216,18 +206,21 @@ function parseM3U(data) {
         if (line.startsWith("#EXTINF")) {
             try {
                 const meta = line;
-                // This regex correctly finds the last comma and captures everything after it as the name.
-                // It works for formats like: group-title="...", Channel Name
                 const nameMatch = meta.match(/,(.+)$/);
                 const logoMatch = meta.match(/tvg-logo="([^"]*)"/);
                 const groupMatch = meta.match(/group-title="([^"]*)"/);
                 const typeMatch = meta.match(/tvg-type="([^"]*)"/);
+                // NEW: Parse match start and end times
+                const startMatch = meta.match(/match-start="([^"]*)"/);
+                const endMatch = meta.match(/match-end="([^"]*)"/);
 
                 currentChannel = {
                     name: nameMatch ? nameMatch[1].trim().split('|')[0] : "Unnamed Channel",
                     logo: logoMatch ? logoMatch[1] : "",
                     group: groupMatch ? groupMatch[1].trim() : "General",
                     type: typeMatch ? typeMatch[1].trim() : "stream",
+                    startTime: startMatch ? new Date(startMatch[1]) : null,
+                    endTime: endMatch ? new Date(endMatch[1]) : null,
                     url: null,
                     userAgent: null
                 };
@@ -237,9 +230,7 @@ function parseM3U(data) {
             }
         } else if (line.startsWith("#EXTVLCOPT:http-user-agent=") && currentChannel) {
             const userAgentMatch = line.match(/#EXTVLCOPT:http-user-agent=(.+)$/);
-            if (userAgentMatch) {
-                currentChannel.userAgent = userAgentMatch[1].trim();
-            }
+            if (userAgentMatch) currentChannel.userAgent = userAgentMatch[1].trim();
         } else if (line && !line.startsWith('#') && currentChannel) {
             let channelURL = line;
             if (line.includes("|<iframe")) {
@@ -260,25 +251,94 @@ function parseM3U(data) {
     return channels;
 }
 
+// --- NEW: Match Spotlight Feature Logic ---
+function getMatchStatus(startTime, endTime) {
+    const now = new Date();
+    if (now > endTime) return { status: 'Ended', text: 'Match Ended' };
+    if (now < startTime) {
+        const diff = startTime - now;
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff / 1000 / 60) % 60);
+        return { status: 'Upcoming', text: `Starts in ${h}h ${m}m` };
+    }
+    return { status: 'Ongoing', text: '🔴 Ongoing' };
+}
 
+function updateSpotlightTimers() {
+    document.querySelectorAll('.spotlight-item').forEach(item => {
+        const index = parseInt(item.dataset.index, 10);
+        const channel = appState.allChannels[index];
+        if (!channel || !channel.startTime) return;
+
+        const statusInfo = getMatchStatus(new Date(channel.startTime), new Date(channel.endTime));
+        const statusBadge = item.querySelector('.status-badge');
+
+        if (statusBadge.textContent !== statusInfo.text) {
+            statusBadge.textContent = statusInfo.text;
+            statusBadge.className = 'status-badge'; // reset classes
+            item.classList.remove('status-upcoming', 'status-ongoing', 'status-ended');
+            
+            statusBadge.classList.add(`status-${statusInfo.status.toLowerCase()}`);
+            item.classList.add(`status-${statusInfo.status.toLowerCase()}`);
+        }
+    });
+}
+
+function displayMatchSpotlight(matches) {
+    matchSpotlightList.innerHTML = '';
+    matchSpotlightOverlay.classList.remove('hidden');
+
+    matches.forEach((match, i) => {
+        setTimeout(() => {
+            const index = appState.allChannels.findIndex(ch => ch === match);
+            const statusInfo = getMatchStatus(new Date(match.startTime), new Date(match.endTime));
+
+            const item = document.createElement('div');
+            item.className = `spotlight-item status-${statusInfo.status.toLowerCase()}`;
+            item.dataset.index = index;
+            
+            item.innerHTML = `
+                <img src="${match.logo || 'https://via.placeholder.com/60'}" class="channel-logo" onerror="this.src='https://via.placeholder.com/60'">
+                <div class="spotlight-info">
+                    <h3>${match.name}</h3>
+                    <span class="status-badge status-${statusInfo.status.toLowerCase()}">${statusInfo.text}</span>
+                </div>
+                <i class="fa-solid fa-play fa-2x" style="color: var(--primary-color);"></i>
+            `;
+            
+            matchSpotlightList.appendChild(item);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                item.classList.add('visible');
+            });
+            
+            item.addEventListener('click', () => {
+                if (statusInfo.status !== 'Ended') {
+                    playStream(match, index);
+                    body.classList.add('player-focused-mode');
+                    matchSpotlightOverlay.classList.add('hidden');
+                    if (appState.matchUpdateInterval) clearInterval(appState.matchUpdateInterval);
+                }
+            });
+        }, i * 150); // Staggered animation delay
+    });
+
+    if (appState.matchUpdateInterval) clearInterval(appState.matchUpdateInterval);
+    appState.matchUpdateInterval = setInterval(updateSpotlightTimers, 30000); // Update every 30 seconds
+}
+
+// --- Existing Functions (Modified/Unmodified) ---
 function setupInitialView() {
     const search = searchInput.value.toLowerCase().trim();
     const selectedGroup = categoryFilter.dataset.value || "";
     const sortOrder = sortSelector.dataset.value || "default";
     let tempChannels = [...appState.allChannels];
-    if (selectedGroup === "Favorites") {
-        tempChannels = getFavorites();
-    } else if (selectedGroup !== "") {
-        tempChannels = tempChannels.filter(ch => ch.group === selectedGroup);
-    }
-    if (search) {
-        tempChannels = tempChannels.filter(ch => ch.name.toLowerCase().includes(search));
-    }
-    if (sortOrder === 'az') {
-        tempChannels.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortOrder === 'za') {
-        tempChannels.sort((a, b) => b.name.localeCompare(a.name));
-    }
+    if (selectedGroup === "Favorites") tempChannels = getFavorites();
+    else if (selectedGroup) tempChannels = tempChannels.filter(ch => ch.group === selectedGroup);
+    if (search) tempChannels = tempChannels.filter(ch => ch.name.toLowerCase().includes(search));
+    if (sortOrder === 'az') tempChannels.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortOrder === 'za') tempChannels.sort((a, b) => b.name.localeCompare(a.name));
     appState.currentFilteredChannels = tempChannels;
     channelList.innerHTML = "";
     appState.pageToLoad = 1;
@@ -297,7 +357,7 @@ function loadMoreChannels() {
     channelsToRender.forEach(ch => {
         const div = document.createElement("div");
         div.className = "channel";
-        div.dataset.index = appState.allChannels.findIndex(c => c.url === ch.url && c.name === ch.name);
+        div.dataset.index = appState.allChannels.findIndex(c => c === ch);
         const img = document.createElement("img");
         img.dataset.src = ch.logo || "https://via.placeholder.com/50";
         img.classList.add("lazy");
@@ -319,14 +379,12 @@ function loadMoreChannels() {
 
 function playStream(channel, index) {
     if (!channel) return;
-    if (channel.name) document.title = `${channel.name} - Streaming`;
+    document.title = `${channel.name} - Streaming`;
     appState.currentChannelIndex = index;
     localStorage.setItem(LAST_PLAYED_INDEX_KEY, index);
     document.querySelector('.channel.is-playing')?.classList.remove('is-playing', 'active');
     const activeElement = document.querySelector(`.channel[data-index="${index}"]`);
-    if (activeElement) {
-        activeElement.classList.add('active', 'is-playing');
-    }
+    if (activeElement) activeElement.classList.add('active', 'is-playing');
     
     if (channel.type === 'stream') {
         player.el().style.display = '';
@@ -335,16 +393,8 @@ function playStream(channel, index) {
         qualitySelector.style.display = '';
         customFullscreenBtn.style.display = 'none';
         
-        // Prepare source with custom headers if user-agent is specified
-        const source = {
-            src: channel.url,
-            type: 'application/x-mpegURL'
-        };
-        if (channel.userAgent) {
-            source.headers = {
-                'User-Agent': channel.userAgent
-            };
-        }
+        const source = { src: channel.url, type: 'application/x-mpegURL' };
+        if (channel.userAgent) source.headers = { 'User-Agent': channel.userAgent };
         
         player.src(source);
         player.one('loadedmetadata', () => {
@@ -366,15 +416,24 @@ function playStream(channel, index) {
 
 function restoreLastSession() {
     const lastIndex = localStorage.getItem(LAST_PLAYED_INDEX_KEY);
-    const lastTime = localStorage.getItem(LAST_PLAYBACK_TIME_KEY);
-    if (lastIndex !== null && appState.allChannels[lastIndex]) {
-        const channelToRestore = appState.allChannels[lastIndex];
+    if (lastIndex === null) return;
+    
+    const channelToRestore = appState.allChannels[lastIndex];
+    if (channelToRestore && channelToRestore.startTime) {
+        // Don't auto-play matches from the past
+        const status = getMatchStatus(new Date(channelToRestore.startTime), new Date(channelToRestore.endTime));
+        if (status.status === 'Ended') {
+            localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
+            localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
+            return;
+        }
+    }
+    
+    if (channelToRestore) {
         playStream(channelToRestore, parseInt(lastIndex, 10));
         player.one('canplay', () => {
-            if (lastTime) {
-                const seekTime = parseFloat(lastTime);
-                player.currentTime(seekTime);
-            }
+            const lastTime = localStorage.getItem(LAST_PLAYBACK_TIME_KEY);
+            if (lastTime) player.currentTime(parseFloat(lastTime));
             player.play();
         });
         showToast(`Resuming: ${channelToRestore.name}`);
@@ -383,13 +442,12 @@ function restoreLastSession() {
 
 function renderQualitySelector(qualityLevels) {
     qualitySelector.innerHTML = "";
-    const validLevels = Array.from(qualityLevels).filter(level => level.height);
+    const validLevels = Array.from(qualityLevels).filter(level => level.height).sort((a, b) => a.height - b.height);
     if (validLevels.length <= 1) return;
-    validLevels.sort((a, b) => a.height - b.height);
     const autoBtn = document.createElement("button");
     autoBtn.textContent = "Auto";
     autoBtn.onclick = () => {
-        for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = true;
+        qualityLevels.forEach(level => level.enabled = true);
         showToast('Auto quality selected');
     };
     qualitySelector.appendChild(autoBtn);
@@ -397,8 +455,7 @@ function renderQualitySelector(qualityLevels) {
         const btn = document.createElement("button");
         btn.textContent = `${level.height}p`;
         btn.onclick = () => {
-            for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = false;
-            level.enabled = true;
+            qualityLevels.forEach(l => l.enabled = (l === level));
             showToast(`${level.height}p quality selected`);
         };
         qualitySelector.appendChild(btn);
@@ -418,8 +475,7 @@ function populateCategories() {
     favOpt.dataset.value = "Favorites";
     favOpt.textContent = "⭐ Favorites";
     optionsContainer.appendChild(favOpt);
-    const groups = [...new Set(appState.allChannels.map(ch => ch.group).filter(Boolean))];
-    groups.sort((a, b) => a.localeCompare(b));
+    const groups = [...new Set(appState.allChannels.map(ch => ch.group).filter(Boolean))].sort();
     groups.forEach(group => {
         const opt = document.createElement("span");
         opt.className = "custom-option";
@@ -442,14 +498,8 @@ function showToast(message) {
     setTimeout(() => toastNotification.classList.remove('show'), 2500);
 }
 
-function getFavorites() {
-    return JSON.parse(localStorage.getItem('myFavoriteChannels')) || [];
-}
-
-function saveFavorites(favorites) {
-    localStorage.setItem('myFavoriteChannels', JSON.stringify(favorites));
-}
-
+function getFavorites() { return JSON.parse(localStorage.getItem('myFavoriteChannels')) || []; }
+function saveFavorites(favorites) { localStorage.setItem('myFavoriteChannels', JSON.stringify(favorites)); }
 function toggleFavorite(channel) {
     if (!channel) return;
     let favorites = getFavorites();
@@ -472,7 +522,7 @@ function playNext() {
     const nextIndexInFiltered = (currentIndexInFiltered + 1) % appState.currentFilteredChannels.length;
     const nextChannel = appState.currentFilteredChannels[nextIndexInFiltered];
     if (!nextChannel) return;
-    const nextGlobalIndex = appState.allChannels.findIndex(c => c.url === nextChannel.url && c.name === nextChannel.name);
+    const nextGlobalIndex = appState.allChannels.findIndex(c => c === nextChannel);
     if (nextGlobalIndex > -1) playStream(appState.allChannels[nextGlobalIndex], nextGlobalIndex);
 }
 
@@ -484,13 +534,12 @@ function playPrevious() {
     if (prevIndexInFiltered < 0) prevIndexInFiltered = appState.currentFilteredChannels.length - 1;
     const prevChannel = appState.currentFilteredChannels[prevIndexInFiltered];
     if (!prevChannel) return;
-    const prevGlobalIndex = appState.allChannels.findIndex(c => c.url === prevChannel.url && c.name === prevChannel.name);
+    const prevGlobalIndex = appState.allChannels.findIndex(c => c === prevChannel);
     if (prevGlobalIndex > -1) playStream(appState.allChannels[prevGlobalIndex], prevGlobalIndex);
 }
 
 // --- Event Listeners ---
 let isScrolling = false;
-
 const startPress = (event) => {
     isScrolling = false;
     const channelDiv = event.target.closest('.channel');
@@ -499,33 +548,20 @@ const startPress = (event) => {
     appState.pressTimer = setTimeout(() => {
         if (!isScrolling) {
             appState.isLongPress = true;
-            const channel = appState.allChannels[channelDiv.dataset.index];
-            toggleFavorite(channel);
+            toggleFavorite(appState.allChannels[channelDiv.dataset.index]);
         }
     }, 1000);
 };
-
-const cancelPress = () => {
-    clearTimeout(appState.pressTimer);
-};
-
+const cancelPress = () => clearTimeout(appState.pressTimer);
 const handleClick = (event) => {
     const channelDiv = event.target.closest('.channel');
     if (channelDiv && !appState.isLongPress && !isScrolling) {
         const channelIndex = parseInt(channelDiv.dataset.index, 10);
-        if (!isNaN(channelIndex)) {
-            const channel = appState.allChannels[channelIndex];
-            if (channel) playStream(channel, channelIndex);
-        }
+        if (!isNaN(channelIndex)) playStream(appState.allChannels[channelIndex], channelIndex);
     }
     appState.isLongPress = false;
 };
-
-const handleMove = () => {
-    isScrolling = true;
-    clearTimeout(appState.pressTimer);
-};
-
+const handleMove = () => { isScrolling = true; clearTimeout(appState.pressTimer); };
 channelList.addEventListener('mousedown', startPress);
 channelList.addEventListener('mouseup', cancelPress);
 channelList.addEventListener('mouseleave', cancelPress);
@@ -533,91 +569,39 @@ channelList.addEventListener('click', handleClick);
 channelList.addEventListener('touchstart', startPress, { passive: true });
 channelList.addEventListener('touchend', cancelPress);
 channelList.addEventListener('touchmove', handleMove);
-
-channelList.addEventListener('scroll', () => {
-    if (channelList.scrollTop + channelList.clientHeight >= channelList.scrollHeight - 400) {
-        loadMoreChannels();
-    }
-});
-
-player.on('ended', () => {
-    localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
-    localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
-    playNext();
-});
-
+channelList.addEventListener('scroll', () => { if (channelList.scrollTop + channelList.clientHeight >= channelList.scrollHeight - 400) loadMoreChannels(); });
+player.on('ended', playNext);
 let lastTimeUpdate = 0;
 player.on('timeupdate', () => {
     const now = Date.now();
     if (now - lastTimeUpdate > 5000) {
-        const currentTime = player.currentTime();
-        if (currentTime > 0) {
-            localStorage.setItem(LAST_PLAYBACK_TIME_KEY, currentTime);
-        }
+        if (player.currentTime() > 0) localStorage.setItem(LAST_PLAYBACK_TIME_KEY, player.currentTime());
         lastTimeUpdate = now;
     }
 });
-
 searchInput.addEventListener("input", setupInitialView);
 listViewBtn.addEventListener('click', () => setView('list'));
 gridViewBtn.addEventListener('click', () => setView('grid'));
 prevBtn.addEventListener('click', playPrevious);
 nextBtn.addEventListener('click', playNext);
-
-customFullscreenBtn.addEventListener('click', () => {
-    if (iframeContainer.style.display === 'block') {
-        if (iframeEl.requestFullscreen) {
-            iframeEl.requestFullscreen();
-        } else if (iframeEl.mozRequestFullScreen) {
-            iframeEl.mozRequestFullScreen();
-        } else if (iframeEl.webkitRequestFullscreen) {
-            iframeEl.webkitRequestFullscreen();
-        } else if (iframeEl.msRequestFullscreen) {
-            iframeEl.msRequestFullscreen();
-        }
-    }
-});
-
+skipSpotlightBtn.addEventListener('click', showMainContent);
+customFullscreenBtn.addEventListener('click', () => { if (iframeContainer.style.display === 'block') iframeEl.requestFullscreen(); });
 function handleFullscreenChange() {
-    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
     try {
-        if (isFullscreen) {
-            if (screen.orientation && typeof screen.orientation.lock === 'function') {
-                screen.orientation.lock('landscape').catch(err => {});
-            }
-        } else {
-            if (screen.orientation && typeof screen.orientation.unlock === 'function') {
-                screen.orientation.unlock();
-            }
-        }
-    } catch (e) {
-        console.warn("Screen Orientation API not fully supported.", e);
-    }
+        const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+        if (isFullscreen && screen.orientation && typeof screen.orientation.lock === 'function') screen.orientation.lock('landscape').catch(()=>{});
+        else if (!isFullscreen && screen.orientation && typeof screen.orientation.unlock === 'function') screen.orientation.unlock();
+    } catch (e) { console.warn("Screen Orientation API not fully supported.", e); }
 }
-
 document.addEventListener('fullscreenchange', handleFullscreenChange);
 document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
 document.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
-    applyTheme(savedTheme);
+    applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
     setView(localStorage.getItem('preferredView') || 'list');
     initializeCustomSelects();
     loadAllPlaylists();
 });
-
-document.addEventListener('keydown', (event
-) => {
-    if (event.target.tagName === 'INPUT') return;
-    if (event.key === 'ArrowRight') playNext();
-    if (event.key === 'ArrowLeft') playPrevious();
-});
-
-document.addEventListener('mouseup', (event) => {
-    if (event.button === 3) playPrevious();
-    if (event.button === 4) playNext();
-});
-
+document.addEventListener('keydown', (event) => { if (event.target.tagName !== 'INPUT') { if (event.key === 'ArrowRight') playNext(); if (event.key === 'ArrowLeft') playPrevious(); } });
+document.addEventListener('mouseup', (event) => { if (event.button === 3) playPrevious(); if (event.button === 4) playNext(); });
 document.getElementById('currentYear').textContent = new Date().getFullYear();
+themeToggle.addEventListener('change', () => applyTheme(themeToggle.checked ? 'dark' : 'light'));
