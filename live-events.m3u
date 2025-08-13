@@ -10,7 +10,7 @@ https://short.icu/Tj7kuul3g
 http://path/to/stream.m3u8
 #EXTINF:-1 tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoLcdg-fbzs1i2DLldmrSkZlGRa8tfjrJMSQ&usqp=CAU" group-title="Live Events", Live 1
 https://stream.mux.com/oCOl3Z11eAACbtO3lStS01zcOxA02h02NhsC1ofvvXl0248.m3u8
-#EXTINF:-1 tvg-logo="https://mlsbd-image.com/images/2025/08/12/1754987090689afa52c4756.webp" group-title="Live Events", S5 E59 · Episode 59
+#EXTINF:-1 tvg-logo="https://mlsbd-image.com/images/2025/08/12/1754987090689afa52c4756.webp" group-title="Live Events" tvg-type="stream", S5 E59 · Episode 59
 https://stream.mux.com/Uuw02iBluJlfabApDFY2fuiioVL3mOdywHPAxQGWCvQ4.m3u8
 #EXTINF:-1 tvg-logo="https://mlsbd-image.com/images/2025/08/12/1754987090689afa52c4756.webp" group-title="Live Events", S1 E01 · Episode 1
 https://stream.mux.com/01vus7LbWBpgXtaZZpFV00QmnltF302uzTYKZAxncgshkk.m3u8
