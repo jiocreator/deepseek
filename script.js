@@ -24,22 +24,22 @@ document.addEventListener('DOMContentLoaded', () => {
         unlockButton.addEventListener('click', () => {
             const adWindow = window.open(adLink, '_blank');
             if (!adWindow) {
-                alert("পপ-আপ ব্লক করা হয়েছে। পপ-আপ অনুমতি দিন এবং আবার চেষ্টা করুন।");
+                alert("Popup blocked. Please allow popups and try again.");
                 return;
             }
-            unlockButton.textContent = "দয়া করে ১০ সেকেন্ড অপেক্ষা করুন...";
+            unlockButton.textContent = "Please wait 10 seconds...";
             unlockButton.disabled = true;
             let timeWaited = 0;
             const requiredWaitTime = 10;
             const timer = setInterval(() => {
                 if (!adWindow || adWindow.closed) {
                     clearInterval(timer);
-                    alert("দয়া করে অ্যাড পেজটি ১০ সেকেন্ডের আগে বন্ধ করবেন না।");
+                    alert("Please do not close the ad page before 10 seconds.");
                     window.location.href = adLink;
                     return;
                 }
                 timeWaited++;
-                unlockButton.textContent = `অপেক্ষা করুন... ${requiredWaitTime - timeWaited}সে`;
+                unlockButton.textContent = `Waiting... ${requiredWaitTime - timeWaited}s`;
                 if (timeWaited >= requiredWaitTime) {
                     clearInterval(timer);
                     localStorage.setItem(storageKey, new Date().getTime());
@@ -191,7 +191,7 @@ function getMatchStatus(startTime, endTime) {
 }
 
 function formatCountdown(startTime) {
-    if (!startTime) return 'এন/এ';
+    if (!startTime) return 'N/A';
     const now = new Date();
     const start = new Date(startTime);
     const diff = start - now;
@@ -199,10 +199,14 @@ function formatCountdown(startTime) {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    return `${hours > 0 ? hours + 'ঘণ্টা ' : ''}${minutes > 0 ? minutes + 'মিনিট ' : ''}${seconds}সে`;
+    return `${hours > 0 ? hours + 'h ' : ''}${minutes > 0 ? minutes + 'm ' : ''}${seconds}s`;
 }
 
 function updateMatchStatus() {
+    if (!matchesInner) {
+        console.warn("Matches inner container not found.");
+        return;
+    }
     const matchItems = matchesInner.querySelectorAll('.match-item');
     matchItems.forEach(item => {
         const index = parseInt(item.dataset.index, 10);
@@ -211,25 +215,28 @@ function updateMatchStatus() {
             const status = getMatchStatus(match.startTime, match.endTime);
             const statusElement = item.querySelector('.match-status');
             const countdownElement = item.querySelector('.countdown-timer');
-            statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            statusElement.className = `match-status status-${status}`;
-            if (status === 'upcoming') {
-                countdownElement.textContent = formatCountdown(match.startTime);
-            } else {
-                countdownElement.textContent = '';
-            }
+            if (statusElement) statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            if (statusElement) statusElement.className = `match-status status-${status}`;
+            if (countdownElement) countdownElement.textContent = status === 'upcoming' ? formatCountdown(match.startTime) : '';
         }
     });
 }
 
 function renderMatchesCarousel() {
+    console.log("Rendering match carousel, matches count:", appState.matches.length);
+    if (!matchesSection || !matchesInner) {
+        console.error("Matches section or inner container not found in DOM.");
+        return;
+    }
     if (!appState.matches.length) {
+        console.log("No matches available to render.");
         matchesSection.style.display = 'none';
+        matchesInner.innerHTML = '<div style="padding: 20px; text-align: center;">No matches found.</div>';
         return;
     }
     matchesSection.style.display = 'block';
     matchesInner.innerHTML = '';
-    const matchesToRender = [...appState.matches, ...appState.matches];
+    const matchesToRender = [...appState.matches, ...appState.matches]; // Duplicate for smooth scrolling
     matchesToRender.forEach((match, index) => {
         const status = getMatchStatus(match.startTime, match.endTime);
         const countdown = status === 'upcoming' ? formatCountdown(match.startTime) : '';
@@ -241,7 +248,7 @@ function renderMatchesCarousel() {
             <span class="match-name">${match.name}</span>
             <span class="match-status status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
             <span class="countdown-timer">${countdown}</span>
-            <span class="match-time">${match.startTime ? new Date(match.startTime).toLocaleTimeString() : 'এন/এ'}</span>
+            <span class="match-time">${match.startTime ? new Date(match.startTime).toLocaleTimeString() : 'N/A'}</span>
         `;
         matchesInner.appendChild(div);
         const img = div.querySelector('img');
@@ -249,20 +256,22 @@ function renderMatchesCarousel() {
         div.addEventListener('click', () => {
             const channelIndex = parseInt(div.dataset.index, 10);
             if (!isNaN(channelIndex) && appState.allChannels[channelIndex]) {
+                console.log(`Playing channel from carousel: ${appState.allChannels[channelIndex].name}, Index: ${channelIndex}`);
                 playStream(appState.allChannels[channelIndex], channelIndex);
             } else {
-                console.error(`Invalid channel index: ${channelIndex}`);
-                showToast("কন্টেন্ট লোড করা যায়নি। আবার চেষ্টা করুন।");
+                console.error(`Invalid channel index from carousel: ${channelIndex}`);
+                showToast("Failed to load content. Please try again.");
             }
         });
     });
+    console.log("Match carousel rendered successfully.");
     setInterval(updateMatchStatus, 1000);
 }
 
 // --- Core Functions ---
 async function loadAllPlaylists() {
     console.log("Starting to load all playlists...");
-    channelList.innerHTML = 'লোডিং হচ্ছে...';
+    channelList.innerHTML = 'Loading...';
     try {
         const promises = playlistUrls.map(async (url) => {
             try {
@@ -287,8 +296,9 @@ async function loadAllPlaylists() {
         console.log(`Total channels parsed: ${combinedChannels.length}`);
         appState.allChannels = combinedChannels;
         appState.matches = combinedChannels.filter(ch => ch.startTime && ch.endTime);
+        console.log(`Matches found: ${appState.matches.length}`);
         if (appState.allChannels.length === 0) {
-            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">কোনো চ্যানেল লোড করা যায়নি। নেটওয়ার্ক চেক করুন।</div>`;
+            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">No channels loaded. Check network.</div>`;
             return;
         }
         populateCategories();
@@ -297,7 +307,7 @@ async function loadAllPlaylists() {
         restoreLastSession();
     } catch (error) {
         console.error("Critical error during playlist loading:", error);
-        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">ত্রুটি হয়েছে। কনসোল চেক করুন।</div>`;
+        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">Error occurred. Check console.</div>`;
     }
 }
 
@@ -319,9 +329,9 @@ function parseM3U(data, url) {
                 const endTimeMatch = meta.match(/tvg-end="([^"]*)"/);
 
                 currentChannel = {
-                    name: nameMatch ? nameMatch[1].trim().split('|')[0] : "নামহীন কন্টেন্ট",
+                    name: nameMatch ? nameMatch[1].trim().split('|')[0] : "Unnamed Content",
                     logo: logoMatch ? logoMatch[1] : "",
-                    group: groupMatch ? groupMatch[1].trim() : "সাধারণ",
+                    group: groupMatch ? groupMatch[1].trim() : "General",
                     type: typeMatch ? typeMatch[1].trim() : "stream",
                     url: null,
                     userAgent: null,
@@ -396,7 +406,7 @@ function loadMoreChannels() {
     const startIndex = (appState.pageToLoad - 1) * appState.CHANNELS_PER_LOAD;
     const channelsToRender = appState.currentFilteredChannels.slice(startIndex, startIndex + appState.CHANNELS_PER_LOAD);
     if (channelsToRender.length === 0 && appState.pageToLoad === 1) {
-        channelList.innerHTML = `<div style="padding: 20px; text-align: center;">কোনো কন্টেন্ট পাওয়া যায়নি।</div>`;
+        channelList.innerHTML = `<div style="padding: 20px; text-align: center;">No content found.</div>`;
     }
     channelsToRender.forEach(ch => {
         const div = document.createElement("div");
@@ -424,10 +434,11 @@ function loadMoreChannels() {
 function playStream(channel, index) {
     if (!channel || isNaN(index)) {
         console.error("Invalid channel or index:", channel, index);
-        showToast("কন্টেন্ট লোড করা যায়নি। আবার চেষ্টা করুন।");
+        showToast("Failed to load content. Please try again.");
         return;
     }
-    if (channel.name) document.title = `${channel.name} - স্ট্রিমিং`;
+    console.log(`Playing channel: ${channel.name}, Index: ${index}, Type: ${channel.type}, URL: ${channel.url}`);
+    if (channel.name) document.title = `${channel.name} - Streaming`;
     appState.currentChannelIndex = index;
     localStorage.setItem(LAST_PLAYED_INDEX_KEY, index);
     document.querySelector('.channel.is-playing')?.classList.remove('is-playing', 'active');
@@ -458,7 +469,7 @@ function playStream(channel, index) {
         player.src(source);
         player.play().catch(e => {
             console.error("Error playing stream:", e);
-            showToast("কন্টেন্ট প্লে করা যায়নি। কনসোল চেক করুন।");
+            showToast("Failed to play content. Check console.");
         });
         player.one('loadedmetadata', () => {
             const qualityLevels = player.qualityLevels();
@@ -481,7 +492,8 @@ function playStream(channel, index) {
 function setupIframeEndDetection(channel, index) {
     setTimeout(() => {
         if (iframeContainer.style.display === 'block' && appState.currentChannelIndex === index) {
-            showToast("কন্টেন্ট শেষ হয়েছে। পরের কন্টেন্ট চালু হচ্ছে...");
+            console.log(`Iframe content ended for channel: ${channel.name}, playing next...`);
+            showToast("Content ended. Playing next content...");
             playNext();
         }
     }, 300000); // 5 minutes
@@ -500,7 +512,7 @@ function restoreLastSession() {
             }
             player.play();
         });
-        showToast(`পুনরায় চালু হচ্ছে: ${channelToRestore.name}`);
+        showToast(`Resuming: ${channelToRestore.name}`);
     }
 }
 
@@ -510,10 +522,10 @@ function renderQualitySelector(qualityLevels) {
     if (validLevels.length <= 1) return;
     validLevels.sort((a, b) => a.height - b.height);
     const autoBtn = document.createElement("button");
-    autoBtn.textContent = "অটো";
+    autoBtn.textContent = "Auto";
     autoBtn.onclick = () => {
         for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = true;
-        showToast('অটো কোয়ালিটি নির্বাচিত');
+        showToast('Auto quality selected');
     };
     qualitySelector.appendChild(autoBtn);
     validLevels.forEach(level => {
@@ -522,7 +534,7 @@ function renderQualitySelector(qualityLevels) {
         btn.onclick = () => {
             for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = false;
             level.enabled = true;
-            showToast(`${level.height}p কোয়ালিটি নির্বাচিত`);
+            showToast(`${level.height}p quality selected`);
         };
         qualitySelector.appendChild(btn);
     });
@@ -534,12 +546,12 @@ function populateCategories() {
     const allOpt = document.createElement("span");
     allOpt.className = "custom-option selected";
     allOpt.dataset.value = "";
-    allOpt.textContent = "সব ক্যাটাগরি";
+    allOpt.textContent = "All Categories";
     optionsContainer.appendChild(allOpt);
     const favOpt = document.createElement("span");
     favOpt.className = "custom-option";
     favOpt.dataset.value = "Favorites";
-    favOpt.textContent = "⭐ ফেভারিট";
+    favOpt.textContent = "⭐ Favorites";
     optionsContainer.appendChild(favOpt);
     const groups = [...new Set(appState.allChannels.map(ch => ch.group).filter(Boolean))];
     groups.sort((a, b) => a.localeCompare(b));
@@ -579,10 +591,10 @@ function toggleFavorite(channel) {
     const index = favorites.findIndex(fav => fav.url === channel.url);
     if (index > -1) {
         favorites.splice(index, 1);
-        showToast(`'${channel.name}' ফেভারিট থেকে সরানো হয়েছে`);
+        showToast(`'${channel.name}' removed from favorites`);
     } else {
         favorites.push(channel);
-        showToast(`'${channel.name}' ফেভারিটে যোগ করা হয়েছে!`);
+        showToast(`'${channel.name}' added to favorites!`);
     }
     saveFavorites(favorites);
     if (categoryFilter.dataset.value === 'Favorites') setupInitialView();
@@ -597,6 +609,7 @@ function playNext() {
     if (!nextChannel) return;
     const nextGlobalIndex = appState.allChannels.findIndex(c => c.url === nextChannel.url && c.name === nextChannel.name);
     if (nextGlobalIndex > -1) {
+        console.log(`Playing next channel: ${appState.allChannels[nextGlobalIndex].name}, Index: ${nextGlobalIndex}`);
         playStream(appState.allChannels[nextGlobalIndex], nextGlobalIndex);
     }
 }
@@ -611,6 +624,7 @@ function playPrevious() {
     if (!prevChannel) return;
     const prevGlobalIndex = appState.allChannels.findIndex(c => c.url === prevChannel.url && c.name === prevChannel.name);
     if (prevGlobalIndex > -1) {
+        console.log(`Playing previous channel: ${appState.allChannels[prevGlobalIndex].name}, Index: ${prevGlobalIndex}`);
         playStream(appState.allChannels[prevGlobalIndex], prevGlobalIndex);
     }
 }
@@ -641,10 +655,11 @@ const handleClick = (event) => {
     if (channelDiv && !appState.isLongPress && !isScrolling) {
         const channelIndex = parseInt(channelDiv.dataset.index, 10);
         if (!isNaN(channelIndex) && appState.allChannels[channelIndex]) {
+            console.log(`Playing channel from list: ${appState.allChannels[channelIndex].name}, Index: ${channelIndex}`);
             playStream(appState.allChannels[channelIndex], channelIndex);
         } else {
-            console.error(`Invalid channel index: ${channelIndex}`);
-            showToast("কন্টেন্ট লোড করা যায়নি। আবার চেষ্টা করুন।");
+            console.error(`Invalid channel index from list: ${channelIndex}`);
+            showToast("Failed to load content. Please try again.");
         }
     }
     appState.isLongPress = false;
@@ -672,14 +687,16 @@ channelList.addEventListener('scroll', () => {
 player.on('ended', () => {
     localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
     localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
-    showToast("কন্টেন্ট শেষ হয়েছে। পরের কন্টেন্ট চালু হচ্ছে...");
+    console.log("Video ended, playing next content...");
+    showToast("Content ended. Playing next content...");
     playNext();
 });
 
 player.on('error', () => {
     localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
     localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
-    showToast("কন্টেন্ট লোড করা যায়নি। অন্য একটি সিলেক্ট করুন।");
+    console.error("Player error occurred.");
+    showToast("Failed to load content. Please select another.");
 });
 
 let lastTimeUpdate = 0;
