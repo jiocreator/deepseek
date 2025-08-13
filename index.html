@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>World of Streaming</title>
-    <link rel="icon" href="icons/favicon.png" type="image/png">
+    <link rel="icon" href="icons/favicon.png" type="png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
@@ -26,15 +27,6 @@
         </div>
     </div>
 
-    <div id="match-spotlight-overlay" class="hidden">
-        <div class="spotlight-header">
-            <h2>Today's Matches</h2>
-            <button id="skipSpotlightBtn" title="Skip to Main Playlist">Skip & Browse All <i class="fa-solid fa-arrow-right"></i></button>
-        </div>
-        <div id="match-spotlight-list">
-            </div>
-    </div>
-
     <header class="main-header header-elegant">
         <h1 class="header-title">
             <img src="logo.png" alt="World of Streaming Logo" class="header-logo">
@@ -44,6 +36,12 @@
             <a href="https://www.profitableratecpm.com/yrygzszmx?key=b43ea4afe6263aed815797a0ebb4f75d" target="_blank" rel="noopener noreferrer">Click here to Support ❤️</a>
         </p>
     </header>
+
+    <div class="matches-section-wrapper" id="matchesSection">
+        <div id="matchesBox" class="matches-box">
+            <div class="matches-inner"></div>
+        </div>
+    </div>
 
     <div class="video-section-wrapper">
         <video id="video" class="video-js vjs-default-skin vjs-big-play-centered" playsinline></video>
