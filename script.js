@@ -1,5 +1,5 @@
 // --- Configuration ---
-const isAdGateEnabled = true;
+const isAdGateEnabled = false;
 const areAnimationsEnabled = true;
 
 // --- Ad Gate System ---
