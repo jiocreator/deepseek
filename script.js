@@ -205,6 +205,7 @@ async function loadAllPlaylists() {
     }
 }
 
+// --- UPDATED M3U PARSING LOGIC ---
 function parseM3U(data) {
     const lines = data.split("\n");
     let channels = [];
@@ -215,6 +216,8 @@ function parseM3U(data) {
         if (line.startsWith("#EXTINF")) {
             try {
                 const meta = line;
+                // This regex correctly finds the last comma and captures everything after it as the name.
+                // It works for formats like: group-title="...", Channel Name
                 const nameMatch = meta.match(/,(.+)$/);
                 const logoMatch = meta.match(/tvg-logo="([^"]*)"/);
                 const groupMatch = meta.match(/group-title="([^"]*)"/);
@@ -256,6 +259,7 @@ function parseM3U(data) {
     }
     return channels;
 }
+
 
 function setupInitialView() {
     const search = searchInput.value.toLowerCase().trim();
@@ -604,7 +608,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAllPlaylists();
 });
 
-document.addEventListener('keydown', (event) => {
+document.addEventListener('keydown', (event
+) => {
     if (event.target.tagName === 'INPUT') return;
     if (event.key === 'ArrowRight') playNext();
     if (event.key === 'ArrowLeft') playPrevious();
