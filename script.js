@@ -312,7 +312,92 @@ function renderMatchesCarousel() {
     // Update status every second
     setInterval(updateMatchStatus, 1000);
     }
-        
+        // M3U প্লেলিস্ট পার্সার আপডেট করুন
+function parseM3U(data, url) {
+    const lines = data.split("\n");
+    let channels = [];
+    let currentChannel = null;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith("#EXTINF")) {
+            try {
+                const meta = line;
+                const nameMatch = meta.match(/,(.+)$/);
+                const logoMatch = meta.match(/tvg-logo="([^"]*)"/);
+                const groupMatch = meta.match(/group-title="([^"]*)"/);
+                const typeMatch = meta.match(/tvg-type="([^"]*)"/);
+                
+                currentChannel = {
+                    name: nameMatch ? nameMatch[1].trim().split('|')[0] : "Unnamed Content",
+                    logo: logoMatch ? logoMatch[1] : "",
+                    group: groupMatch ? groupMatch[1].trim() : "General",
+                    type: typeMatch ? typeMatch[1].trim() : "stream",
+                    url: null,
+                    userAgent: null,
+                    startTime: null,
+                    endTime: null,
+                    team1Name: '',
+                    team1Logo: '',
+                    team2Name: '',
+                    team2Logo: '',
+                    isMatch: false
+                };
+            } catch (e) {
+                console.warn("Skipping a malformed M3U entry.", e);
+                currentChannel = null;
+            }
+        } 
+        else if (line.startsWith("#EXTVLCOPT:extn.") && currentChannel) {
+            const [key, value] = line.substring(17).split('=');
+            switch(key) {
+                case 'startTime':
+                    currentChannel.startTime = value;
+                    currentChannel.isMatch = true;
+                    break;
+                case 'endTime':
+                    currentChannel.endTime = value;
+                    break;
+                case 'team1Name':
+                    currentChannel.team1Name = value;
+                    break;
+                case 'team1Logo':
+                    currentChannel.team1Logo = value;
+                    break;
+                case 'team2Name':
+                    currentChannel.team2Name = value;
+                    break;
+                case 'team2Logo':
+                    currentChannel.team2Logo = value;
+                    break;
+            }
+        }
+        else if (line && !line.startsWith('#') && currentChannel) {
+            let channelURL = line;
+            const isIframe = currentChannel.type === "iframe" || line.includes("|<iframe");
+            if (isIframe) {
+                const parts = line.split("|<iframe");
+                channelURL = parts[0].trim();
+                if (parts[1]) {
+                    const iframeTag = "<iframe" + parts[1];
+                    const srcMatch = iframeTag.match(/src="([^"]*)"/);
+                    if (srcMatch && srcMatch[1]) {
+                        channelURL = srcMatch[1];
+                        currentChannel.type = "iframe";
+                    }
+                }
+            } else if (channelURL.match(/\.(m3u8|mp4|webm|mp3)$/i)) {
+                currentChannel.type = "stream";
+            } else {
+                currentChannel.type = "iframe";
+            }
+            currentChannel.url = channelURL;
+            channels.push(currentChannel);
+            currentChannel = null;
+        }
+    }
+    return channels;
+}
 // --- Core Functions ---
 async function loadAllPlaylists() {
     console.log("Starting to load all playlists...");
