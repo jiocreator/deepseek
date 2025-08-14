@@ -1,7 +1,8 @@
-#EXTINF:-1 tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoLcdg-fbzs1i2DLldmrSkZlGRa8tfjrJMSQ&usqp=CAU" group-title="Embed" tvg-type="iframe", Embed  Test
-
-#EXTINF:-1 tvg-logo="https://i.ibb.co.com/84LGQKmn/20250809-212643.jpg" group-title="Live Events", El Clasico (RMA vs FCB) - 26th Oct
-///
-
-#EXTINF:-1 tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoLcdg-fbzs1i2DLldmrSkZlGRa8tfjrJMSQ&usqp=CAU" group-title="Live Events", Live 1
-https://stream.mux.com/oCOl3Z11eAACbtO3lStS01zcOxA02h02NhsC1ofvvXl0248.m3u8
+#EXTINF:-1 tvg-name="BARCA vs PSG" group-title="FOOTBALL"
+#EXTVLCOPT:extn.startTime=2025-08-15T20:00:00Z
+#EXTVLCOPT:extn.endTime=2025-08-15T22:00:00Z
+#EXTVLCOPT:extn.team1Name=Barcelona
+#EXTVLCOPT:extn.team1Logo=https://example.com/barca.png
+#EXTVLCOPT:extn.team2Name=PSG
+#EXTVLCOPT:extn.team2Logo=https://example.com/psg.png
+http://stream.url/playlist.m3u8
