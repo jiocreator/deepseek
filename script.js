@@ -1,5 +1,5 @@
 // --- Configuration ---
-const isAdGateEnabled = false;
+const isAdGateEnabled = true;
 const areAnimationsEnabled = true;
 
 // --- Ad Gate System ---
@@ -109,7 +109,7 @@ const THEME_KEY = 'userPreferredTheme';
 
 // --- Playlist URLs ---
 const playlistUrls = [
-    "",
+    "streams/live-events.m3u",
     "streams/channel1.m3u",
     "streams/channels.m3u",
     "streams/dirilis-ertugrul.m3u",
