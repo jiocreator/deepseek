@@ -109,7 +109,7 @@ const THEME_KEY = 'userPreferredTheme';
 
 // --- Playlist URLs ---
 const playlistUrls = [
-    "https://raw.githubusercontent.com/abusaeeidx/IPTV-Scraper-Zilla/main/CricHD.m3u",
+    "",
     "streams/channel1.m3u",
     "streams/channels.m3u",
     "streams/dirilis-ertugrul.m3u",
@@ -117,7 +117,7 @@ const playlistUrls = [
     "streams/the-great-seljuk.m3u",
     "streams/alp-arsalan.m3u",
     "streams/channel2.m3u",
-    "streams/channel3.m3u",
+    "streams/vod.m3u",
     "streams/al-quran.m3u",
     "streams/al-quran-bangla.m3u",
 ];
