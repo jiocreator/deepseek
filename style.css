@@ -9,21 +9,22 @@ CUSTOM FONT DEFINITION
 }
 
 /* =================================
-CSS Variables for Theming
+CSS Variables for Theming (Modern Neon Dark Theme)
 ================================= */
 [data-theme="dark"] {
-    --primary-color: #00e5ff;
-    --primary-color-hover: #00b8d4;
-    --background-color: #0d1117;
-    --surface-color: #161b22;
-    --text-color: #c9d1d9;
-    --text-color-dark: #8b949e;
-    --border-color: #30363d;
-    --shadow: 0 0 15px rgba(0, 229, 255, 0.2);
-    --channel-hover-bg: rgba(0, 229, 255, 0.05);
-    --channel-active-color: #000;
-    --scrollbar-thumb: #444;
-    --scrollbar-thumb-hover: #555;
+    --primary-color: #00ffff; /* Neon Cyan */
+    --primary-color-hover: #00cccc;
+    --background-color: #121212;
+    --surface-color: #1e1e1e;
+    --text-color: #ffffff;
+    --text-color-dark: #b0b0b0;
+    --border-color: #333333;
+    --shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    --channel-hover-bg: rgba(0, 255, 255, 0.1);
+    --channel-active-color: #000000;
+    --scrollbar-thumb: #444444;
+    --scrollbar-thumb-hover: #555555;
+    --neon-glow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
 }
 
 [data-theme="light"] {
@@ -34,19 +35,20 @@ CSS Variables for Theming
     --text-color: #212529;
     --text-color-dark: #6c757d;
     --border-color: #dee2e6;
-    --shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     --channel-hover-bg: #f1f3f5;
-    --channel-active-color: #fff;
+    --channel-active-color: #ffffff;
     --scrollbar-thumb: #ced4da;
     --scrollbar-thumb-hover: #adb5bd;
+    --neon-glow: none;
 }
 
 :root {
     --success-color: #198754;
     --error-color: #dc3545;
     --font-family: 'CustomSiteFont', 'Poppins', sans-serif;
-    --border-radius: 8px;
-    --transition-speed: 0.25s;
+    --border-radius: 12px; /* Softer corners for modern look */
+    --transition-speed: 0.3s; /* Slightly slower for smooth feel */
 }
 
 /* =================================
@@ -125,7 +127,7 @@ input:checked + .slider:before {
 }
 
 /* =======================================================
-Generic Component Styles (Uses CSS Variables)
+Generic Component Styles (Modern Neon)
 ======================================================= */
 .main-header.header-elegant,
 .video-controls-bar,
@@ -135,7 +137,8 @@ Generic Component Styles (Uses CSS Variables)
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    transition: background-color var(--transition-speed), border-color var(--transition-speed);
+    box-shadow: var(--shadow);
+    transition: background-color var(--transition-speed), border-color var(--transition-speed), box-shadow var(--transition-speed);
 }
 .main-header.header-elegant {
     display: flex;
@@ -149,14 +152,17 @@ Generic Component Styles (Uses CSS Variables)
     color: var(--primary-color);
     text-decoration: none;
     font-weight: 700;
+    transition: color var(--transition-speed);
 }
 .main-header.header-elegant .support-subtitle a:hover {
     color: var(--primary-color-hover);
+    text-shadow: var(--neon-glow);
 }
 .video-js {
     border-radius: var(--border-radius);
     overflow: hidden;
     border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
 }
 
 #iframeContainer {
@@ -167,6 +173,7 @@ Generic Component Styles (Uses CSS Variables)
     background-color: #000;
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
 }
 
 #iframePlayer {
@@ -183,25 +190,9 @@ Generic Component Styles (Uses CSS Variables)
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    outline: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background-color: #000 !important;
-}
-.video-js.vjs-fullscreen .vjs-tech,
-.video-js.vjs-fullscreen .vjs-poster {
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    outline: none !important;
-    background-color: #000 !important;
 }
 .video-section-wrapper {
     border: none !important;
-}
-.video-section-wrapper.vjs-fullscreen {
-    border: none !important;
-    box-shadow: none !important;
 }
 .controls input,
 .custom-select-trigger {
@@ -209,10 +200,12 @@ Generic Component Styles (Uses CSS Variables)
     border: 1px solid var(--border-color);
     color: var(--text-color);
     border-radius: 6px;
+    transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
 }
 .controls input:focus {
     outline: none;
     border-color: var(--primary-color);
+    box-shadow: var(--neon-glow);
 }
 .navigation-controls button,
 #qualitySelector button,
@@ -221,17 +214,21 @@ Generic Component Styles (Uses CSS Variables)
     color: var(--text-color-dark);
     border: 1px solid var(--border-color);
     transition: all var(--transition-speed) ease;
+    box-shadow: var(--shadow);
 }
 .navigation-controls button:hover,
 #qualitySelector button:hover,
 .view-toggle button:hover {
     color: var(--primary-color);
     border-color: var(--primary-color);
+    box-shadow: var(--neon-glow);
+    transform: scale(1.05);
 }
 .view-toggle button.active {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: var(--channel-active-color);
+    box-shadow: var(--neon-glow);
 }
 .custom-option:hover {
     background-color: var(--primary-color-hover);
@@ -245,23 +242,29 @@ Generic Component Styles (Uses CSS Variables)
     border: 1px solid var(--primary-color);
     color: var(--primary-color);
     border-radius: var(--border-radius);
+    transition: background-color var(--transition-speed), color var(--transition-speed), box-shadow var(--transition-speed);
 }
 .contact-btn:hover {
     background: var(--primary-color);
     color: var(--channel-active-color);
+    box-shadow: var(--neon-glow);
 }
 .channel {
     border: 2px solid transparent;
     border-radius: 6px;
-    transition: background-color var(--transition-speed), border-color var(--transition-speed);
+    transition: background-color var(--transition-speed), border-color var(--transition-speed), transform var(--transition-speed), box-shadow var(--transition-speed);
+    box-shadow: var(--shadow);
 }
 .channel:hover {
     background-color: var(--channel-hover-bg);
+    transform: scale(1.02);
+    box-shadow: var(--neon-glow);
 }
 .channel.active {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: var(--channel-active-color);
+    box-shadow: var(--neon-glow);
 }
 .channel.is-playing .playing-indicator {
     opacity: 1;
@@ -281,7 +284,6 @@ Generic Component Styles (Uses CSS Variables)
 }
 
 /* --- Matches Carousel Styles --- */
-/* ম্যাচ ক্যারোজেলে কাউন্টডাউন স্টাইল */
 .match-item .countdown-timer {
     font-size: 0.9rem;
     color: var(--primary-color);
@@ -326,10 +328,13 @@ Generic Component Styles (Uses CSS Variables)
     padding: 0.75rem;
     min-width: 400px;
     cursor: pointer;
-    transition: background-color var(--transition-speed);
+    transition: background-color var(--transition-speed), transform var(--transition-speed), box-shadow var(--transition-speed);
+    box-shadow: var(--shadow);
 }
 .match-item:hover {
     background-color: var(--channel-hover-bg);
+    transform: scale(1.02);
+    box-shadow: var(--neon-glow);
 }
 .match-item img {
     width: 40px;
@@ -377,6 +382,10 @@ Generic Component Styles (Uses CSS Variables)
 .main-header.header-elegant .header-logo {
     display: block;
     width: auto;
+    transition: transform var(--transition-speed);
+}
+.main-header.header-elegant .header-logo:hover {
+    transform: scale(1.05);
 }
 .main-header.header-elegant .support-subtitle {
     color: var(--text-color-dark);
@@ -447,6 +456,10 @@ Generic Component Styles (Uses CSS Variables)
 .custom-select-trigger {
     padding: 0.75rem 2rem 0.75rem 0.75rem;
     cursor: pointer;
+    transition: box-shadow var(--transition-speed);
+}
+.custom-select-trigger:hover {
+    box-shadow: var(--neon-glow);
 }
 .custom-select-trigger::after {
     content: '\f078';
@@ -476,6 +489,7 @@ Generic Component Styles (Uses CSS Variables)
     transform: translateY(-10px);
     display: flex;
     flex-direction: column;
+    transition: opacity var(--transition-speed), transform var(--transition-speed);
 }
 .custom-select.open .custom-options {
     opacity: 1;
@@ -486,6 +500,11 @@ Generic Component Styles (Uses CSS Variables)
     padding: 0.75rem;
     cursor: pointer;
     order: 0;
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+.custom-option:hover {
+    background-color: var(--primary-color-hover);
+    color: #fff;
 }
 #categoryFilter .custom-options .custom-option[data-value=""] {
     order: -3;
@@ -519,6 +538,10 @@ Generic Component Styles (Uses CSS Variables)
     margin-right: 1rem;
     border-radius: 50%;
     background-color: #333;
+    transition: transform var(--transition-speed);
+}
+.channel:hover img {
+    transform: scale(1.1);
 }
 .channel-name {
     flex-grow: 1;
@@ -530,6 +553,10 @@ Generic Component Styles (Uses CSS Variables)
     transform: translateY(-50%);
     font-size: 0.8rem;
     opacity: 0;
+    transition: opacity var(--transition-speed);
+}
+.channel.is-playing .playing-indicator {
+    opacity: 1;
 }
 #channelList.grid-view {
     display: grid;
@@ -589,6 +616,7 @@ Generic Component Styles (Uses CSS Variables)
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
+    transition: opacity var(--transition-speed);
 }
 #toastNotification.show {
     opacity: 1;
@@ -610,15 +638,15 @@ Generic Component Styles (Uses CSS Variables)
     font-family: var(--font-family);
 }
 .ad-gate-box {
-    background-color: #1e1e1e;
+    background-color: var(--surface-color);
     padding: 30px;
     border-radius: 15px;
     max-width: 400px;
-    box-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
+    box-shadow: var(--shadow);
 }
 .ad-gate-box h2 {
     margin-top: 0;
-    color: #00aaff;
+    color: var(--primary-color);
 }
 #unlockButton {
     margin-top: 20px;
@@ -626,14 +654,15 @@ Generic Component Styles (Uses CSS Variables)
     font-size: 1.1em;
     font-weight: bold;
     color: #fff;
-    background-color: #007bff;
+    background-color: var(--primary-color);
     border: none;
     border-radius: 25px;
     cursor: pointer;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
 }
 #unlockButton:hover {
-    background-color: #0056b3;
     transform: scale(1.05);
+    box-shadow: var(--neon-glow);
 }
 .footer-wrapper {
     padding-top: 1rem;
@@ -653,9 +682,11 @@ Generic Component Styles (Uses CSS Variables)
     color: var(--text-color-dark);
     font-size: 1.5rem;
     margin: 0 0.75rem;
+    transition: color var(--transition-speed), transform var(--transition-speed);
 }
 .social-links a:hover {
     color: var(--primary-color);
+    transform: scale(1.2);
 }
 .contact-section {
     text-align: center;
@@ -672,7 +703,7 @@ Generic Component Styles (Uses CSS Variables)
 Responsive Layout Optimizations
 ======================================================= */
 
-/* Mobile (default, <768px) */
+/* Mobile (<768px) */
 @media (max-width: 767px) {
     body {
         padding: 0.5rem;
@@ -895,7 +926,7 @@ Responsive Layout Optimizations
     }
     *:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px var(--primary-color-hover);
+        box-shadow: var(--neon-glow);
         border-color: var(--primary-color-hover);
         transform: scale(1.02);
         z-index: 200;
@@ -1011,7 +1042,7 @@ Responsive Layout Optimizations
     }
     *:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px var(--primary-color-hover);
+        box-shadow: var(--neon-glow);
         border-color: var(--primary-color-hover);
         transform: scale(1.02);
         z-index: 200;
