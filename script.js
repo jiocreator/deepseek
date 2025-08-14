@@ -179,7 +179,7 @@ function initializeCustomSelects() {
     });
 }
 
-// --- Matches Carousel Logic ---
+// --- Enhanced Matches Carousel Logic ---
 function getMatchStatus(startTime, endTime) {
     const now = new Date();
     const start = startTime ? new Date(startTime) : null;
@@ -196,78 +196,123 @@ function formatCountdown(startTime) {
     const start = new Date(startTime);
     const diff = start - now;
     if (diff <= 0) return '';
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    if (days > 0) return `Starting in ${days}d`;
+    if (hours >= 2) return `Starting in ${hours}h`;
     return `${hours > 0 ? hours + 'h ' : ''}${minutes > 0 ? minutes + 'm ' : ''}${seconds}s`;
 }
 
 function updateMatchStatus() {
-    if (!matchesInner) {
-        console.warn("Matches inner container not found.");
-        return;
-    }
+    if (!matchesInner) return;
     const matchItems = matchesInner.querySelectorAll('.match-item');
+    
     matchItems.forEach(item => {
         const index = parseInt(item.dataset.index, 10);
         const match = appState.matches.find(m => m.index === index);
-        if (match) {
-            const status = getMatchStatus(match.startTime, match.endTime);
-            const statusElement = item.querySelector('.match-status');
-            const countdownElement = item.querySelector('.countdown-timer');
-            if (statusElement) statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            if (statusElement) statusElement.className = `match-status status-${status}`;
-            if (countdownElement) countdownElement.textContent = status === 'upcoming' ? formatCountdown(match.startTime) : '';
+        if (!match) return;
+        
+        const status = getMatchStatus(match.startTime, match.endTime);
+        const statusElement = item.querySelector('.match-status');
+        const countdownElement = item.querySelector('.countdown-timer');
+        const liveIcon = item.querySelector('.live-icon');
+        
+        if (statusElement) {
+            statusElement.textContent = 
+                status === 'upcoming' ? 'Starting Soon' :
+                status === 'ongoing' ? 'Live' :
+                'Ended';
+                
+            statusElement.className = `match-status status-${status}`;
+        }
+        
+        if (countdownElement) {
+            countdownElement.textContent = status === 'upcoming' 
+                ? formatCountdown(match.startTime) 
+                : '';
+        }
+        
+        if (liveIcon) {
+            liveIcon.style.display = status === 'ongoing' ? 'inline-block' : 'none';
         }
     });
 }
 
 function renderMatchesCarousel() {
-    console.log("Rendering match carousel, matches count:", appState.matches.length);
-    if (!matchesSection || !matchesInner) {
-        console.error("Matches section or inner container not found in DOM.");
-        return;
-    }
+    if (!matchesSection || !matchesInner) return;
+    
+    // Hide section if no matches
     if (!appState.matches.length) {
-        console.log("No matches available to render.");
         matchesSection.style.display = 'none';
-        matchesInner.innerHTML = '<div style="padding: 20px; text-align: center;">No matches found.</div>';
+        matchesInner.innerHTML = '<div class="no-matches">No live matches available</div>';
         return;
     }
+    
     matchesSection.style.display = 'block';
     matchesInner.innerHTML = '';
-    const matchesToRender = [...appState.matches, ...appState.matches]; // Duplicate for smooth scrolling
+    
+    // Create double set for seamless looping
+    const matchesToRender = [...appState.matches, ...appState.matches];
+    
     matchesToRender.forEach((match, index) => {
         const status = getMatchStatus(match.startTime, match.endTime);
         const countdown = status === 'upcoming' ? formatCountdown(match.startTime) : '';
+        
         const div = document.createElement('div');
         div.className = 'match-item';
         div.dataset.index = match.index;
+        
         div.innerHTML = `
-            <img src="${match.logo || 'https://via.placeholder.com/40'}" alt="${match.name}" class="lazy">
-            <span class="match-name">${match.name}</span>
-            <span class="match-status status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
-            <span class="countdown-timer">${countdown}</span>
-            <span class="match-time">${match.startTime ? new Date(match.startTime).toLocaleTimeString() : 'N/A'}</span>
+            <div class="team-container">
+                <div class="team">
+                    <img src="${match.team1Logo || 'https://via.placeholder.com/40'}" 
+                         alt="${match.team1Name}" class="lazy team-logo">
+                    <span class="team-name">${match.team1Name || 'Team 1'}</span>
+                </div>
+                
+                <div class="vs-container">
+                    <span class="vs">VS</span>
+                    ${status === 'ongoing' ? 
+                        '<img src="live-icon.gif" class="live-icon" alt="Live">' : 
+                        ''}
+                </div>
+                
+                <div class="team">
+                    <img src="${match.team2Logo || 'https://via.placeholder.com/40'}" 
+                         alt="${match.team2Name}" class="lazy team-logo">
+                    <span class="team-name">${match.team2Name || 'Team 2'}</span>
+                </div>
+            </div>
+            
+            <div class="match-info">
+                <span class="match-status status-${status}">
+                    ${status === 'ongoing' ? 'Live' : ''}
+                </span>
+                <span class="countdown-timer">${countdown}</span>
+            </div>
         `;
+        
         matchesInner.appendChild(div);
-        const img = div.querySelector('img');
-        if (img) lazyImageObserver.observe(img);
+        
+        // Lazy load images
+        div.querySelectorAll('img').forEach(img => {
+            lazyImageObserver.observe(img);
+        });
+        
+        // Add click handler
         div.addEventListener('click', () => {
-            const channelIndex = parseInt(div.dataset.index, 10);
-            if (!isNaN(channelIndex) && appState.allChannels[channelIndex]) {
-                console.log(`Playing channel from carousel: ${appState.allChannels[channelIndex].name}, Index: ${channelIndex}`);
-                playStream(appState.allChannels[channelIndex], channelIndex);
-            } else {
-                console.error(`Invalid channel index from carousel: ${channelIndex}`);
-                showToast("Failed to load content. Please try again.");
-            }
+            playStream(appState.allChannels[match.index], match.index);
         });
     });
-    console.log("Match carousel rendered successfully.");
+    
+    // Update status every second
     setInterval(updateMatchStatus, 1000);
-}
-
+    }
+        
 // --- Core Functions ---
 async function loadAllPlaylists() {
     console.log("Starting to load all playlists...");
