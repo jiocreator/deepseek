@@ -289,24 +289,17 @@ Generic Component Styles (Modern Neon)
     flex-direction: column;
     align-items: center;
     padding: 1rem;
-    min-width: 320px;
+    min-width: 300px;
     background: var(--card-bg);
     border-radius: 12px;
     box-shadow: var(--shadow);
-    transition: transform 0.3s ease;
     margin: 0 10px;
+    transition: transform 0.3s ease;
 }
 
 .match-item:hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 15px rgba(255, 0, 0, 0.3);
-}
-
-.team-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
 }
 
 .team {
@@ -388,7 +381,7 @@ Generic Component Styles (Modern Neon)
     0% { opacity: 1; }
     50% { opacity: 0.5; }
     100% { opacity: 1; }
-}
+    }
 /* --- Rest of the structural CSS --- */
 .main-header.header-elegant .header-title {
     background: none;
