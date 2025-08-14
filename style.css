@@ -283,94 +283,112 @@ Generic Component Styles (Modern Neon)
     background: var(--scrollbar-thumb-hover);
 }
 
-/* --- Matches Carousel Styles --- */
-.match-item .countdown-timer {
-    font-size: 0.9rem;
-    color: var(--primary-color);
-    font-weight: bold;
-    margin-left: 0.5rem;
-}
-
-.match-item .match-status.status-upcoming {
-    color: orange;
-}
-.match-item .match-status.status-ongoing {
-    color: green;
-}
-.match-item .match-status.status-ended {
-    color: red;
-}
-.matches-section-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.matches-box {
-    position: relative;
-    overflow: hidden;
-    height: 80px;
-}
-.matches-inner {
-    display: flex;
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    animation: marquee 30s linear infinite;
-}
-.matches-box:hover .matches-inner {
-    animation-play-state: paused;
-}
+/* --- Enhanced Matches Carousel Styles --- */
 .match-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 1rem;
-    padding: 0.75rem;
-    min-width: 400px;
-    cursor: pointer;
-    transition: background-color var(--transition-speed), transform var(--transition-speed), box-shadow var(--transition-speed);
+    padding: 1rem;
+    min-width: 320px;
+    background: var(--card-bg);
+    border-radius: 12px;
     box-shadow: var(--shadow);
-}
-.match-item:hover {
-    background-color: var(--channel-hover-bg);
-    transform: scale(1.02);
-    box-shadow: var(--neon-glow);
-}
-.match-item img {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    border-radius: 50%;
-}
-.match-item .match-name {
-    flex-grow: 1;
-    font-weight: bold;
-}
-.match-item .match-status {
-    font-weight: bold;
-}
-.status-upcoming {
-    color: orange;
-}
-.status-ongoing {
-    color: green;
-}
-.status-ended {
-    color: red;
-}
-.match-item .match-time {
-    color: var(--text-color-dark);
-    font-size: 0.9rem;
-}
-@keyframes marquee {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
+    transition: transform 0.3s ease;
+    margin: 0 10px;
 }
 
+.match-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(255, 0, 0, 0.3);
+}
+
+.team-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40%;
+}
+
+.team-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    margin-bottom: 5px;
+}
+
+.team-name {
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.vs-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.vs {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin: 0 5px;
+}
+
+.live-icon {
+    width: 30px;
+    height: 30px;
+    margin-top: 5px;
+    display: none;
+}
+
+.match-info {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.match-status {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-right: 10px;
+}
+
+.status-upcoming {
+    color: #FFA500; /* Orange */
+}
+
+.status-ongoing {
+    color: #00FF00; /* Green */
+    animation: pulse 1.5s infinite;
+}
+
+.status-ended {
+    color: #FF0000; /* Red */
+}
+
+.countdown-timer {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
 /* --- Rest of the structural CSS --- */
 .main-header.header-elegant .header-title {
     background: none;
