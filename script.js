@@ -469,7 +469,7 @@ function playStream(channel, index) {
         player.src(source);
         player.play().catch(e => {
             console.error("Error playing stream:", e);
-            showToast("Failed to play content. Check console.");
+          
         });
         player.one('loadedmetadata', () => {
             const qualityLevels = player.qualityLevels();
@@ -659,7 +659,7 @@ const handleClick = (event) => {
             playStream(appState.allChannels[channelIndex], channelIndex);
         } else {
             console.error(`Invalid channel index from list: ${channelIndex}`);
-            showToast("Failed to load content. Please try again.");
+            
         }
     }
     appState.isLongPress = false;
@@ -696,7 +696,7 @@ player.on('error', () => {
     localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
     localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
     console.error("Player error occurred.");
-    showToast("Failed to load content. Please select another.");
+    
 });
 
 let lastTimeUpdate = 0;
