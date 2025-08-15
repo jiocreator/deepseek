@@ -1,5 +1,5 @@
 // --- Configuration ---
-const isAdGateEnabled = true;
+const isAdGateEnabled = false;
 const areAnimationsEnabled = true;
 
 // --- Ad Gate System ---
@@ -88,6 +88,8 @@ const customFullscreenBtn = document.getElementById('customFullscreenBtn');
 const matchesSection = document.getElementById('matchesSection');
 const matchesBox = document.getElementById('matchesBox');
 const matchesInner = document.querySelector('.matches-inner');
+const importBtn = document.getElementById('importBtn');
+const importPlaylistInput = document.getElementById('importPlaylist');
 
 // --- App State ---
 const appState = {
@@ -106,21 +108,6 @@ const appState = {
 const LAST_PLAYED_INDEX_KEY = 'lastPlayedChannelIndex';
 const LAST_PLAYBACK_TIME_KEY = 'lastPlaybackTime';
 const THEME_KEY = 'userPreferredTheme';
-
-// --- Playlist URLs ---
-const playlistUrls = [
-    "streams/live-events.m3u",
-    "streams/channel1.m3u",
-    "streams/channels.m3u",
-    "streams/dirilis-ertugrul.m3u",
-    "streams/kurulus-osman.m3u",
-    "streams/the-great-seljuk.m3u",
-    "streams/alp-arsalan.m3u",
-    "streams/channel2.m3u",
-    "streams/vod.m3u",
-    "streams/al-quran.m3u",
-    "streams/al-quran-bangla.m3u",
-];
 
 // --- Lazy Loading Images ---
 const lazyImageObserver = new IntersectionObserver((entries, observer) => {
@@ -179,7 +166,8 @@ function initializeCustomSelects() {
     });
 }
 
-// --- Enhanced Matches Carousel Logic ---
+
+// --- Matches Carousel Logic --- 
 function getMatchStatus(startTime, endTime) {
     const now = new Date();
     const start = startTime ? new Date(startTime) : null;
@@ -191,254 +179,153 @@ function getMatchStatus(startTime, endTime) {
 }
 
 function formatCountdown(startTime) {
-    if (!startTime) return 'N/A';
+    if (!startTime) return '';
     const now = new Date();
     const start = new Date(startTime);
     const diff = start - now;
     if (diff <= 0) return '';
-    
+
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
-    if (days > 0) return `Starting in ${days}d`;
-    if (hours >= 2) return `Starting in ${hours}h`;
-    return `${hours > 0 ? hours + 'h ' : ''}${minutes > 0 ? minutes + 'm ' : ''}${seconds}s`;
+    if (days > 0) {
+        return `Starts in ${days}d ${hours}h`;
+    }
+    if (hours > 0) {
+        return `Starts in ${hours}h ${minutes}m`;
+    }
+    return `Starts in ${minutes}m`;
 }
 
 function updateMatchStatus() {
     if (!matchesInner) return;
     const matchItems = matchesInner.querySelectorAll('.match-item');
-    
     matchItems.forEach(item => {
         const index = parseInt(item.dataset.index, 10);
         const match = appState.matches.find(m => m.index === index);
-        if (!match) return;
-        
-        const status = getMatchStatus(match.startTime, match.endTime);
-        const statusElement = item.querySelector('.match-status');
-        const countdownElement = item.querySelector('.countdown-timer');
-        const liveIcon = item.querySelector('.live-icon');
-        
-        if (statusElement) {
-            statusElement.textContent = 
-                status === 'upcoming' ? 'Starting Soon' :
-                status === 'ongoing' ? 'Live' :
-                'Ended';
+
+        if (match) {
+            const status = getMatchStatus(match.startTime, match.endTime);
+            const statusElement = item.querySelector('.match-status');
+            const countdownElement = item.querySelector('.countdown-timer');
+
+            if (statusElement) {
+                let statusText = status.charAt(0).toUpperCase() + status.slice(1);
+                if (status === 'ongoing') statusText = 'Live';
                 
-            statusElement.className = `match-status status-${status}`;
-        }
-        
-        if (countdownElement) {
-            countdownElement.textContent = status === 'upcoming' 
-                ? formatCountdown(match.startTime) 
-                : '';
-        }
-        
-        if (liveIcon) {
-            liveIcon.style.display = status === 'ongoing' ? 'inline-block' : 'none';
+                statusElement.textContent = statusText;
+                statusElement.className = `match-status status-${status}`;
+            }
+
+            if (countdownElement) {
+                countdownElement.style.display = status === 'upcoming' ? 'block' : 'none';
+                if(status === 'upcoming') {
+                    countdownElement.textContent = formatCountdown(match.startTime);
+                }
+            }
         }
     });
 }
 
 function renderMatchesCarousel() {
-    if (!matchesSection || !matchesInner) return;
-    
-    // Hide section if no matches
-    if (!appState.matches.length) {
+    if (!matchesSection || !matchesInner) {
+        console.error("Matches section or inner container not found.");
+        return;
+    }
+    if (!appState.matches || appState.matches.length === 0) {
         matchesSection.style.display = 'none';
-        matchesInner.innerHTML = '<div class="no-matches">No live matches available</div>';
         return;
     }
     
     matchesSection.style.display = 'block';
     matchesInner.innerHTML = '';
-    
-    // Create double set for seamless looping
-    const matchesToRender = [...appState.matches, ...appState.matches];
-    
-    matchesToRender.forEach((match, index) => {
+
+    const matchesToRender = [...appState.matches, ...appState.matches]; 
+
+    matchesToRender.forEach((match) => {
         const status = getMatchStatus(match.startTime, match.endTime);
-        const countdown = status === 'upcoming' ? formatCountdown(match.startTime) : '';
-        
+        let statusText = status.charAt(0).toUpperCase() + status.slice(1);
+        if (status === 'ongoing') statusText = 'Live';
+
+        const countdown = formatCountdown(match.startTime);
+
         const div = document.createElement('div');
         div.className = 'match-item';
         div.dataset.index = match.index;
-        
+
         div.innerHTML = `
-            <div class="team-container">
-                <div class="team">
-                    <img src="${match.team1Logo || 'https://via.placeholder.com/40'}" 
-                         alt="${match.team1Name}" class="lazy team-logo">
-                    <span class="team-name">${match.team1Name || 'Team 1'}</span>
-                </div>
-                
-                <div class="vs-container">
-                    <span class="vs">VS</span>
-                    ${status === 'ongoing' ? 
-                        '<img src="live-icon.gif" class="live-icon" alt="Live">' : 
-                        ''}
-                </div>
-                
-                <div class="team">
-                    <img src="${match.team2Logo || 'https://via.placeholder.com/40'}" 
-                         alt="${match.team2Name}" class="lazy team-logo">
-                    <span class="team-name">${match.team2Name || 'Team 2'}</span>
-                </div>
+            <div class="team">
+                <img src="${match.team1Logo || 'icons/default_logo.png'}" alt="${match.team1Name || 'Team 1'}" onerror="this.src='icons/default_logo.png';">
+                <span class="team-name">${match.team1Name || 'Team 1'}</span>
             </div>
-            
-            <div class="match-info">
-                <span class="match-status status-${status}">
-                    ${status === 'ongoing' ? 'Live' : ''}
-                </span>
-                <span class="countdown-timer">${countdown}</span>
+            <div class="match-info-center">
+                <span class="vs-text">VS</span>
+                <span class="match-status status-${status}">${statusText}</span>
+                <span class="countdown-timer" style="display: ${status === 'upcoming' ? 'block' : 'none'};">${countdown}</span>
+            </div>
+            <div class="team">
+                <img src="${match.team2Logo || 'icons/default_logo.png'}" alt="${match.team2Name || 'Team 2'}" onerror="this.src='icons/default_logo.png';">
+                <span class="team-name">${match.team2Name || 'Team 2'}</span>
             </div>
         `;
-        
         matchesInner.appendChild(div);
-        
-        // Lazy load images
-        div.querySelectorAll('img').forEach(img => {
-            lazyImageObserver.observe(img);
-        });
-        
-        // Add click handler
+
         div.addEventListener('click', () => {
-            playStream(appState.allChannels[match.index], match.index);
+            const channelIndex = parseInt(div.dataset.index, 10);
+            const channelToPlay = appState.allChannels.find(c => c.index === channelIndex);
+            if (channelToPlay) {
+                playStream(channelToPlay, channelIndex);
+            } else {
+                showToast("Failed to load content.");
+            }
         });
     });
     
-    // Update status every second
-    setInterval(updateMatchStatus, 1000);
+    const totalItems = appState.matches.length;
+    if (totalItems > 0) {
+        const animationDuration = totalItems * 8;
+        matchesInner.style.animationDuration = `${animationDuration}s`;
     }
-        // M3U প্লেলিস্ট পার্সার আপডেট করুন
-function parseM3U(data, url) {
-    const lines = data.split("\n");
-    let channels = [];
-    let currentChannel = null;
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line.startsWith("#EXTINF")) {
-            try {
-                const meta = line;
-                const nameMatch = meta.match(/,(.+)$/);
-                const logoMatch = meta.match(/tvg-logo="([^"]*)"/);
-                const groupMatch = meta.match(/group-title="([^"]*)"/);
-                const typeMatch = meta.match(/tvg-type="([^"]*)"/);
-                
-                currentChannel = {
-                    name: nameMatch ? nameMatch[1].trim().split('|')[0] : "Unnamed Content",
-                    logo: logoMatch ? logoMatch[1] : "",
-                    group: groupMatch ? groupMatch[1].trim() : "General",
-                    type: typeMatch ? typeMatch[1].trim() : "stream",
-                    url: null,
-                    userAgent: null,
-                    startTime: null,
-                    endTime: null,
-                    team1Name: '',
-                    team1Logo: '',
-                    team2Name: '',
-                    team2Logo: '',
-                    isMatch: false
-                };
-            } catch (e) {
-                console.warn("Skipping a malformed M3U entry.", e);
-                currentChannel = null;
-            }
-        } 
-        else if (line.startsWith("#EXTVLCOPT:extn.") && currentChannel) {
-            const [key, value] = line.substring(17).split('=');
-            switch(key) {
-                case 'startTime':
-                    currentChannel.startTime = value;
-                    currentChannel.isMatch = true;
-                    break;
-                case 'endTime':
-                    currentChannel.endTime = value;
-                    break;
-                case 'team1Name':
-                    currentChannel.team1Name = value;
-                    break;
-                case 'team1Logo':
-                    currentChannel.team1Logo = value;
-                    break;
-                case 'team2Name':
-                    currentChannel.team2Name = value;
-                    break;
-                case 'team2Logo':
-                    currentChannel.team2Logo = value;
-                    break;
-            }
-        }
-        else if (line && !line.startsWith('#') && currentChannel) {
-            let channelURL = line;
-            const isIframe = currentChannel.type === "iframe" || line.includes("|<iframe");
-            if (isIframe) {
-                const parts = line.split("|<iframe");
-                channelURL = parts[0].trim();
-                if (parts[1]) {
-                    const iframeTag = "<iframe" + parts[1];
-                    const srcMatch = iframeTag.match(/src="([^"]*)"/);
-                    if (srcMatch && srcMatch[1]) {
-                        channelURL = srcMatch[1];
-                        currentChannel.type = "iframe";
-                    }
-                }
-            } else if (channelURL.match(/\.(m3u8|mp4|webm|mp3)$/i)) {
-                currentChannel.type = "stream";
-            } else {
-                currentChannel.type = "iframe";
-            }
-            currentChannel.url = channelURL;
-            channels.push(currentChannel);
-            currentChannel = null;
-        }
-    }
-    return channels;
+    if (window.matchStatusInterval) clearInterval(window.matchStatusInterval);
+    window.matchStatusInterval = setInterval(updateMatchStatus, 1000);
 }
 // --- Core Functions ---
-async function loadAllPlaylists() {
-    console.log("Starting to load all playlists...");
-    channelList.innerHTML = 'Loading...';
-    try {
-        const promises = playlistUrls.map(async (url) => {
-            try {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status} for ${url}`);
-                const text = await res.text();
-                return { url, text };
-            } catch (e) {
-                console.error(`Failed to load playlist: ${url}`, e);
-                return null;
-            }
-        });
-        const results = await Promise.all(promises);
-        let combinedChannels = [];
-        results.forEach(result => {
-            if (result) {
-                console.log(`Playlist loaded successfully: ${result.url}`);
-                combinedChannels = combinedChannels.concat(parseM3U(result.text, result.url));
-            }
-        });
-        combinedChannels.forEach((ch, index) => ch.index = index);
-        console.log(`Total channels parsed: ${combinedChannels.length}`);
-        appState.allChannels = combinedChannels;
-        appState.matches = combinedChannels.filter(ch => ch.startTime && ch.endTime);
-        console.log(`Matches found: ${appState.matches.length}`);
-        if (appState.allChannels.length === 0) {
-            channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">No channels loaded. Check network.</div>`;
+function handlePlaylistImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const importedChannels = parseM3U(text, file.name);
+        if (importedChannels.length === 0) {
+            showToast("No valid channels found in the imported playlist.");
             return;
         }
+        importedChannels.forEach((ch, index) => ch.index = appState.allChannels.length + index);
+        appState.allChannels = [...appState.allChannels, ...importedChannels];
+        appState.matches = appState.allChannels.filter(ch => ch.startTime && ch.endTime);
         populateCategories();
         setupInitialView();
         renderMatchesCarousel();
-        restoreLastSession();
-    } catch (error) {
-        console.error("Critical error during playlist loading:", error);
-        channelList.innerHTML = `<div style="color: #f44336; padding: 20px;">Error occurred. Check console.</div>`;
-    }
+        showToast("Playlist imported successfully!");
+    };
+    reader.onerror = function() {
+        showToast("Failed to read the playlist file.");
+    };
+    reader.readAsText(file);
+}
+
+async function loadAllPlaylists() {
+    console.log("Starting to load all playlists...");
+    channelList.innerHTML = 'Please import a playlist to begin.';
+    appState.allChannels = [];
+    appState.matches = [];
+    populateCategories();
+    setupInitialView();
+    renderMatchesCarousel();
 }
 
 function parseM3U(data, url) {
@@ -466,7 +353,11 @@ function parseM3U(data, url) {
                     url: null,
                     userAgent: null,
                     startTime: startTimeMatch ? startTimeMatch[1] : null,
-                    endTime: endTimeMatch ? endTimeMatch[1] : null
+                    endTime: endTimeMatch ? endTimeMatch[1] : null,
+                    team1Name: null,
+                    team1Logo: null,
+                    team2Name: null,
+                    team2Logo: null
                 };
                 console.log(`Parsed channel: ${currentChannel.name}, Type: ${currentChannel.type}, Logo: ${currentChannel.logo}, Group: ${currentChannel.group}`);
             } catch (e) {
@@ -477,6 +368,36 @@ function parseM3U(data, url) {
             const userAgentMatch = line.match(/#EXTVLCOPT:http-user-agent=(.+)$/);
             if (userAgentMatch) {
                 currentChannel.userAgent = userAgentMatch[1].trim();
+            }
+        } else if (line.startsWith("#EXTVLCOPT:extn.startTime=") && currentChannel) {
+            const match = line.match(/#EXTVLCOPT:extn.startTime=(.+)$/);
+            if (match) {
+                currentChannel.startTime = match[1].trim();
+            }
+        } else if (line.startsWith("#EXTVLCOPT:extn.endTime=") && currentChannel) {
+            const match = line.match(/#EXTVLCOPT:extn.endTime=(.+)$/);
+            if (match) {
+                currentChannel.endTime = match[1].trim();
+            }
+        } else if (line.startsWith("#EXTVLCOPT:extn.team1Name=") && currentChannel) {
+            const match = line.match(/#EXTVLCOPT:extn.team1Name=(.+)$/);
+            if (match) {
+                currentChannel.team1Name = match[1].trim();
+            }
+        } else if (line.startsWith("#EXTVLCOPT:extn.team1Logo=") && currentChannel) {
+            const match = line.match(/#EXTVLCOPT:extn.team1Logo=(.+)$/);
+            if (match) {
+                currentChannel.team1Logo = match[1].trim();
+            }
+        } else if (line.startsWith("#EXTVLCOPT:extn.team2Name=") && currentChannel) {
+            const match = line.match(/#EXTVLCOPT:extn.team2Name=(.+)$/);
+            if (match) {
+                currentChannel.team2Name = match[1].trim();
+            }
+        } else if (line.startsWith("#EXTVLCOPT:extn.team2Logo=") && currentChannel) {
+            const match = line.match(/#EXTVLCOPT:extn.team2Logo=(.+)$/);
+            if (match) {
+                currentChannel.team2Logo = match[1].trim();
             }
         } else if (line && !line.startsWith('#') && currentChannel) {
             let channelURL = line;
@@ -620,15 +541,30 @@ function playStream(channel, index) {
 }
 
 function setupIframeEndDetection(channel, index) {
-    setTimeout(() => {
-        if (iframeContainer.style.display === 'block' && appState.currentChannelIndex === index) {
-            console.log(`Iframe content ended for channel: ${channel.name}, playing next...`);
-            showToast("Content ended. Playing next content...");
-            playNext();
-        }
-    }, 300000); // 5 minutes
-}
+    const iframe = document.getElementById("videoFrame");
 
+    // যখন iframe লোড হবে তখন ভেতরের ভিডিওতে ইভেন্ট লিসেনার যোগ করব
+    iframe.onload = () => {
+        try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const video = iframeDoc.querySelector("video");
+
+            if (video) {
+                video.addEventListener("ended", () => {
+                    if (iframeContainer.style.display === 'block' && appState.currentChannelIndex === index) {
+                        console.log(`Iframe content ended for channel: ${channel.name}, playing next...`);
+                        showToast("Content ended. Playing next content...");
+                        playNext();
+                    }
+                });
+            } else {
+                console.warn("No video tag found inside iframe.");
+            }
+        } catch (err) {
+            console.error("Cannot access iframe content due to cross-origin restrictions:", err);
+        }
+    };
+}
 function restoreLastSession() {
     const lastIndex = localStorage.getItem(LAST_PLAYED_INDEX_KEY);
     const lastTime = localStorage.getItem(LAST_PLAYBACK_TIME_KEY);
@@ -882,6 +818,12 @@ document.addEventListener('fullscreenchange', handleFullscreenChange);
 document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 document.addEventListener('mozfullscreenchange', handleFullscreenChange);
 document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+importBtn.addEventListener('click', () => {
+    importPlaylistInput.click();
+});
+
+importPlaylistInput.addEventListener('change', handlePlaylistImport);
 
 document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
