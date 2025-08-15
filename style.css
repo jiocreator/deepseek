@@ -1,14 +1,4 @@
 /* =================================
-CUSTOM FONT DEFINITION
-================================= */
-@font-face {
-    font-family: 'CustomSiteFont';
-    src: url('fontss/font1.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-}
-
-/* =================================
 CSS Variables for Theming (Modern Neon Dark Theme)
 ================================= */
 [data-theme="dark"] {
@@ -46,7 +36,7 @@ CSS Variables for Theming (Modern Neon Dark Theme)
 :root {
     --success-color: #198754;
     --error-color: #dc3545;
-    --font-family: 'CustomSiteFont', 'Poppins', sans-serif;
+    --font-family: 'Poppins', sans-serif;
     --border-radius: 12px; /* Softer corners for modern look */
     --transition-speed: 0.3s; /* Slightly slower for smooth feel */
 }
@@ -737,8 +727,6 @@ Responsive Layout Optimizations
     #channelList.grid-view .channel img {
         width: 60px;
         height: 60px;
-        border-radius: 8px;
-        object-fit: cover;
     }
     .footer-wrapper {
         padding-top: 0.5rem;
