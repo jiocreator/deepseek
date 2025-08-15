@@ -1,6 +1,5 @@
 // --- Configuration ---
 const isAdGateEnabled = false;
-const areAnimationsEnabled = true;
 
 // --- Ad Gate System ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -186,15 +185,15 @@ async function loadPlaylist(source, isFileContent = false) {
         appState.allChannels = parsedChannels;
 
         if (appState.allChannels.length === 0) {
-            channelList.innerHTML = `<div style="padding: 20px; text-align: center;">No channels found in the playlist.</div>`;
             playlistStatus.textContent = "Playlist loaded, but no channels found.";
-            return;
+        } else {
+            playlistStatus.textContent = `Successfully loaded ${appState.allChannels.length} channels.`;
         }
 
         populateCategories();
         setupInitialView();
         restoreLastSession();
-        playlistStatus.textContent = `Successfully loaded ${appState.allChannels.length} channels.`;
+        
         if(!isFileContent) {
             localStorage.setItem(LAST_PLAYLIST_URL_KEY, source);
         }
@@ -267,10 +266,16 @@ function parseM3U(data) {
 }
 
 function setupInitialView() {
+    channelList.innerHTML = ""; // Clear previous list
+    if (appState.allChannels.length === 0) {
+        channelList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-color-dark);">To get started, please load a playlist URL or upload a .m3u file.</div>`;
+        return;
+    }
     const search = searchInput.value.toLowerCase().trim();
     const selectedGroup = categoryFilter.dataset.value || "";
     const sortOrder = sortSelector.dataset.value || "default";
     let tempChannels = [...appState.allChannels];
+
     if (selectedGroup === "Favorites") {
         tempChannels = getFavorites();
     } else if (selectedGroup !== "") {
@@ -285,7 +290,6 @@ function setupInitialView() {
         tempChannels.sort((a, b) => b.name.localeCompare(a.name));
     }
     appState.currentFilteredChannels = tempChannels;
-    channelList.innerHTML = "";
     appState.pageToLoad = 1;
     loadMoreChannels();
 }
@@ -296,7 +300,7 @@ function loadMoreChannels() {
     loadingSpinner.style.display = 'block';
     const startIndex = (appState.pageToLoad - 1) * appState.CHANNELS_PER_LOAD;
     const channelsToRender = appState.currentFilteredChannels.slice(startIndex, startIndex + appState.CHANNELS_PER_LOAD);
-    if (channelsToRender.length === 0 && appState.pageToLoad === 1 && appState.allChannels.length > 0) {
+    if (channelsToRender.length === 0 && appState.pageToLoad === 1) {
         channelList.innerHTML = `<div style="padding: 20px; text-align: center;">No content found for your filter.</div>`;
     }
     channelsToRender.forEach(ch => {
@@ -328,8 +332,7 @@ function playStream(channel, index) {
         showToast("Failed to load content. Please try again.");
         return;
     }
-    console.log(`Playing channel: ${channel.name}, Index: ${index}, Type: ${channel.type}, URL: ${channel.url}`);
-    if (channel.name) document.title = `${channel.name} - Streaming`;
+    document.title = `${channel.name} - Streaming`;
     appState.currentChannelIndex = index;
     localStorage.setItem(LAST_PLAYED_INDEX_KEY, index);
     document.querySelector('.channel.is-playing')?.classList.remove('is-playing', 'active');
@@ -342,27 +345,22 @@ function playStream(channel, index) {
         player.el().style.display = '';
         iframeContainer.style.display = 'none';
         iframeEl.src = 'about:blank';
-        qualitySelector.style.display = '';
+        qualitySelector.style.display = 'flex';
         customFullscreenBtn.style.display = 'none';
         
         const source = {
             src: channel.url,
-            type: channel.url.match(/\.mp4$/i) ? 'video/mp4' : 
-                  channel.url.match(/\.webm$/i) ? 'video/webm' : 
-                  channel.url.match(/\.mp3$/i) ? 'audio/mp3' : 'application/x-mpegURL'
+            type: channel.url.endsWith('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'
         };
         if (channel.userAgent) {
-            source.headers = {
-                'User-Agent': channel.userAgent
-            };
+            // This part requires videojs-contrib-http-streaming which is not included by default
+            // For simplicity, we log it. For it to work, an additional library is needed.
+            console.log("User-Agent override is not supported by default Video.js VHS.");
         }
-        player.reset();
         player.src(source);
-        player.play().catch(e => console.error("Error playing stream:", e));
         player.one('loadedmetadata', () => {
             const qualityLevels = player.qualityLevels();
             renderQualitySelector(qualityLevels);
-            qualityLevels.off('addqualitylevel');
             qualityLevels.on('addqualitylevel', () => renderQualitySelector(qualityLevels));
         });
     } else if (channel.type === 'iframe') {
@@ -373,6 +371,8 @@ function playStream(channel, index) {
         qualitySelector.innerHTML = '';
         qualitySelector.style.display = 'none';
         customFullscreenBtn.style.display = 'inline-flex';
+        // The problematic function call below has been removed.
+        // setupIframeEndDetection(channel, index); 
     }
 }
 
@@ -387,7 +387,6 @@ function restoreLastSession() {
                 const seekTime = parseFloat(lastTime);
                 player.currentTime(seekTime);
             }
-            player.play();
         });
         showToast(`Resuming: ${channelToRestore.name}`);
     }
@@ -401,7 +400,7 @@ function renderQualitySelector(qualityLevels) {
     const autoBtn = document.createElement("button");
     autoBtn.textContent = "Auto";
     autoBtn.onclick = () => {
-        for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = true;
+        qualityLevels.levels_.forEach(level => level.enabled = true);
         showToast('Auto quality selected');
     };
     qualitySelector.appendChild(autoBtn);
@@ -409,8 +408,7 @@ function renderQualitySelector(qualityLevels) {
         const btn = document.createElement("button");
         btn.textContent = `${level.height}p`;
         btn.onclick = () => {
-            for (let i = 0; i < qualityLevels.length; i++) qualityLevels[i].enabled = false;
-            level.enabled = true;
+            qualityLevels.levels_.forEach(l => l.enabled = (l.height === level.height));
             showToast(`${level.height}p quality selected`);
         };
         qualitySelector.appendChild(btn);
@@ -480,27 +478,23 @@ function toggleFavorite(channel) {
 function playNext() {
     if (appState.currentFilteredChannels.length < 1) return;
     const currentItem = appState.allChannels[appState.currentChannelIndex];
-    let currentIndexInFiltered = currentItem ? appState.currentFilteredChannels.findIndex(c => c.url === currentItem.url) : -1;
+    let currentIndexInFiltered = currentItem ? appState.currentFilteredChannels.findIndex(c => c.index === currentItem.index) : -1;
     const nextIndexInFiltered = (currentIndexInFiltered + 1) % appState.currentFilteredChannels.length;
     const nextChannel = appState.currentFilteredChannels[nextIndexInFiltered];
-    if (!nextChannel) return;
-    const nextGlobalIndex = appState.allChannels.findIndex(c => c.url === nextChannel.url && c.name === nextChannel.name);
-    if (nextGlobalIndex > -1) {
-        playStream(appState.allChannels[nextGlobalIndex], nextGlobalIndex);
+    if (nextChannel) {
+        playStream(nextChannel, nextChannel.index);
     }
 }
 
 function playPrevious() {
     if (appState.currentFilteredChannels.length < 1) return;
     const currentItem = appState.allChannels[appState.currentChannelIndex];
-    let currentIndexInFiltered = currentItem ? appState.currentFilteredChannels.findIndex(c => c.url === currentItem.url) : 0;
+    let currentIndexInFiltered = currentItem ? appState.currentFilteredChannels.findIndex(c => c.index === currentItem.index) : 0;
     let prevIndexInFiltered = currentIndexInFiltered - 1;
     if (prevIndexInFiltered < 0) prevIndexInFiltered = appState.currentFilteredChannels.length - 1;
     const prevChannel = appState.currentFilteredChannels[prevIndexInFiltered];
-    if (!prevChannel) return;
-    const prevGlobalIndex = appState.allChannels.findIndex(c => c.url === prevChannel.url && c.name === prevChannel.name);
-    if (prevGlobalIndex > -1) {
-        playStream(appState.allChannels[prevGlobalIndex], prevGlobalIndex);
+    if (prevChannel) {
+        playStream(prevChannel, prevChannel.index);
     }
 }
 
@@ -550,16 +544,13 @@ channelList.addEventListener('scroll', () => {
 });
 
 player.on('ended', () => {
-    localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
     localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
     showToast("Content ended. Playing next content...");
     playNext();
 });
 
-player.on('error', () => {
-    localStorage.removeItem(LAST_PLAYED_INDEX_KEY);
-    localStorage.removeItem(LAST_PLAYBACK_TIME_KEY);
-    console.error("Player error occurred.");
+player.on('error', (e) => {
+    console.error("Player error occurred:", player.error());
 });
 
 let lastTimeUpdate = 0;
@@ -593,6 +584,8 @@ playlistFileInput.addEventListener('change', (event) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             loadPlaylist(e.target.result, true);
+            playlistUrlInput.value = ''; // Clear URL input when file is loaded
+            localStorage.removeItem(LAST_PLAYLIST_URL_KEY); // Clear saved URL
         };
         reader.onerror = () => {
             playlistStatus.textContent = "Error reading file.";
@@ -605,22 +598,16 @@ customFullscreenBtn.addEventListener('click', () => {
     if (iframeContainer.style.display !== 'block') return;
     const el = iframeEl;
     if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.msRequestFullscreen) el.msRequestFullscreen();
 });
 
 function handleFullscreenChange() {
-    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
     try {
-        if (isFullscreen) {
-            if (screen.orientation && typeof screen.orientation.lock === 'function') {
-                screen.orientation.lock('landscape').catch(err => {});
-            }
-        } else {
-            if (screen.orientation && typeof screen.orientation.unlock === 'function') {
-                screen.orientation.unlock();
-            }
+        if (isFullscreen && screen.orientation && typeof screen.orientation.lock === 'function') {
+            screen.orientation.lock('landscape').catch(() => {});
+        } else if (!isFullscreen && screen.orientation && typeof screen.orientation.unlock === 'function') {
+            screen.orientation.unlock();
         }
     } catch (e) {
         console.warn("Screen Orientation API not fully supported.", e);
@@ -629,21 +616,18 @@ function handleFullscreenChange() {
 
 document.addEventListener('fullscreenchange', handleFullscreenChange);
 document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
 document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
     applyTheme(savedTheme);
     setView(localStorage.getItem('preferredView') || 'list');
     initializeCustomSelects();
+    setupInitialView(); // Show initial message
     
     const lastUrl = localStorage.getItem(LAST_PLAYLIST_URL_KEY);
     if(lastUrl) {
         playlistUrlInput.value = lastUrl;
         loadPlaylist(lastUrl);
-    } else {
-        playlistStatus.textContent = "Please load a playlist URL or upload a file to begin.";
     }
 });
 
@@ -651,11 +635,6 @@ document.addEventListener('keydown', (event) => {
     if (event.target.tagName === 'INPUT') return;
     if (event.key === 'ArrowRight') playNext();
     if (event.key === 'ArrowLeft') playPrevious();
-});
-
-document.addEventListener('mouseup', (event) => {
-    if (event.button === 3) playPrevious();
-    if (event.button === 4) playNext();
 });
 
 document.getElementById('currentYear').textContent = new Date().getFullYear();
