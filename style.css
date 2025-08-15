@@ -76,6 +76,79 @@ body {
 }
 
 /* =======================================================
+Playlist Import Section Styles
+======================================================= */
+.playlist-import-section {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.import-controls {
+    display: flex;
+    width: 100%;
+    max-width: 600px;
+    gap: 1rem;
+}
+
+#playlistUrlInput {
+    flex-grow: 1;
+    padding: 0.75rem;
+    font-size: 1rem;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 6px;
+    transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+#playlistUrlInput:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: var(--neon-glow);
+}
+
+#loadUrlBtn, .file-label {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--primary-color);
+    color: var(--channel-active-color);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color var(--transition-speed), transform var(--transition-speed);
+    text-align: center;
+    white-space: nowrap;
+}
+
+#loadUrlBtn:hover, .file-label:hover {
+    background-color: var(--primary-color-hover);
+    transform: scale(1.03);
+}
+
+.file-label {
+    width: 100%;
+}
+
+.import-or-text {
+    font-weight: bold;
+    color: var(--text-color-dark);
+}
+
+#playlist-status {
+    margin-top: 0.5rem;
+    color: var(--text-color-dark);
+    font-size: 0.9rem;
+    height: 1.2em;
+}
+
+/* =======================================================
 Theme Switcher Styles
 ======================================================= */
 .theme-switcher-wrapper {
@@ -132,8 +205,7 @@ Generic Component Styles (Modern Neon)
 .main-header.header-elegant,
 .video-controls-bar,
 .controls,
-#channelList,
-.matches-box {
+#channelList {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -283,180 +355,6 @@ Generic Component Styles (Modern Neon)
     background: var(--scrollbar-thumb-hover);
 }
 
-/* --- Matches Carousel Styles --- */
-.matches-section-wrapper {
-    padding: 0;
-    margin-bottom: 1rem;
-}
-.matches-section-wrapper {
-    font-family: 'Teko', sans-serif;
-}
-
-.matches-box {
-    position: relative;
-    overflow: hidden;
-    height: 120px; /* উচ্চতা বাড়ানো হয়েছে */
-    background-color: var(--surface-color); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-}
-
-.matches-inner {
-    display: flex;
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    gap: 1rem;
-    animation: marquee 45s linear infinite; /* অ্যানিমেশনের সময় সামান্য বাড়ানো হয়েছে */
-}
-
-.matches-box:hover .matches-inner {
-    animation-play-state: resumed;
-}
-
-@keyframes marquee {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
-}
-
-.match-item {
-    flex: 0 0 360px; /* ডেস্কটপের জন্য প্রস্থ বাড়ানো হয়েছে */
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 1rem; /* প্যাডিং সামঞ্জস্য করা হয়েছে */
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
-    background-color: var(--background-color); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-}
-
-.match-item:hover {
-    background-color: var(--channel-hover-bg);
-    transform: translateY(-5px);
-    box-shadow: var(--neon-glow);
-    border-color: var(--primary-color);
-}
-
-.match-item .team {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 110px;
-    gap: 8px; /* গ্যাপ সামঞ্জস্য করা হয়েছে */
-}
-
-.match-item .team img {
-    width: 50px;  /* লোগোর আকার বাড়ানো হয়েছে */
-    height: 50px; /* লোগোর আকার বাড়ানো হয়েছে */
-    object-fit: contain;
-}
-
-.match-item .team-name {
-    font-size: 0.9rem; /* ফন্টের আকার বাড়ানো হয়েছে */
-    font-weight: bold;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-    color: var(--text-color);
-}
-
-.match-info-center {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.match-info-center .vs-text {
-    font-size: 1.3rem; /* ফন্টের আকার বাড়ানো হয়েছে */
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-top: -10px; /* 'vs' টেক্সট মাঝখানে আনার জন্য */
-}
-
-.match-status {
-    font-weight: bold;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-}
-
-.countdown-timer {
-    font-size: 0.9rem;
-    color: var(--primary-color);
-    font-weight: bold;
-}
-
-.status-upcoming {
-    color: orange;
-    background-color: rgba(255, 165, 0, 0.15);
-}
-
-.status-ended {
-    color: var(--text-color-dark); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
-    background-color: rgba(128, 128, 128, 0.2);
-}
-
-.status-ongoing {
-    color: var(--channel-active-color); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
-    background-color: var(--error-color); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
-    animation: pulse-live 1.5s infinite;
-}
-
-@keyframes pulse-live {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 3px var(--error-color), 0 0 5px var(--error-color);
-    }
-    50% {
-        transform: scale(1.05);
-        box-shadow: 0 0 10px var(--error-color), 0 0 15px var(--error-color);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 3px var(--error-color), 0 0 5px var(--error-color);
-    }
-}
-
-/* === মোবাইলের জন্য নতুন CSS কোড === */
-@media (max-width: 767px) {
-    .matches-box {
-        height: 100px; /* মোবাইলের জন্য উচ্চতা কমানো হয়েছে */
-    }
-
-    .match-item {
-        flex: 0 0 290px; /* মোবাইলের জন্য প্রস্থ কমানো হয়েছে */
-        padding: 0.5rem;
-    }
-
-    .match-item .team img {
-        width: 40px; /* মোবাইলের জন্য লোগোর আকার কমানো হয়েছে */
-        height: 40px;
-    }
-
-    .match-item .team-name {
-        font-size: 0.8rem;
-    }
-
-    .match-info-center .vs-text {
-        font-size: 1.1rem;
-    }
-
-    .match-status {
-        font-size: 0.8rem;
-        padding: 3px 10px;
-    }
-    }
 /* --- Rest of the structural CSS --- */
 .main-header.header-elegant .header-title {
     background: none;
@@ -785,30 +683,6 @@ Generic Component Styles (Modern Neon)
     text-decoration: none;
 }
 
-/* Import playlist styles */
-.import-playlist button {
-    background-color: var(--surface-color);
-    color: var(--text-color-dark);
-    border: 1px solid var(--border-color);
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: var(--font-family);
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all var(--transition-speed) ease;
-    box-shadow: var(--shadow);
-}
-
-.import-playlist button:hover {
-    color: var(--primary-color);
-    border-color: var(--primary-color);
-    box-shadow: var(--neon-glow);
-    transform: scale(1.05);
-}
-
 /* =======================================================
 Responsive Layout Optimizations
 ======================================================= */
@@ -873,11 +747,11 @@ Responsive Layout Optimizations
         font-size: 1.2rem;
         margin: 0 0.5rem;
     }
-    .match-item {
-        min-width: 300px;
+    .playlist-import-section {
+        flex-direction: column;
     }
-    .matches-box {
-        height: 70px;
+    .import-controls {
+        flex-direction: column;
     }
 }
 
@@ -893,22 +767,22 @@ Responsive Layout Optimizations
         padding: 1rem;
     }
     .main-header {
-        grid-area: 1 / 1;
+        grid-row: 1 / 2;
     }
-    .matches-section-wrapper {
-        grid-area: 2 / 1;
+    .playlist-import-section {
+        grid-row: 2 / 3;
     }
     .video-section-wrapper {
-        grid-area: 3 / 1;
+        grid-row: 3 / 4;
     }
     .playlist-section-wrapper {
-        grid-area: 4 / 1;
+        grid-row: 4 / 5;
         display: flex;
         flex-direction: column;
         min-height: 0;
     }
     .footer-wrapper {
-        grid-area: 5 / 1;
+        grid-row: 5 / 6;
         padding-top: 0;
     }
     .main-header.header-elegant {
@@ -948,23 +822,21 @@ Responsive Layout Optimizations
     #channelList.grid-view .channel img {
         width: 80px;
         height: 80px;
-        border-radius: 8px;
-        object-fit: cover;
     }
     .social-links a {
         font-size: 1.8rem;
     }
 }
 
-/* Desktop (1024px - 1279px) */
-@media (min-width: 1024px) and (max-width: 1279px) {
+/* Desktop (1024px and up) common styles */
+@media (min-width: 1024px) {
     body {
         display: grid;
         grid-template-columns: 2fr 1fr;
         grid-template-rows: auto auto 1fr auto;
         grid-template-areas: 
             "header header"
-            "matches matches"
+            "import import"
             "video playlist"
             "footer footer";
         height: 100vh;
@@ -972,16 +844,9 @@ Responsive Layout Optimizations
         padding: 1.5rem;
         gap: 1rem;
     }
-    .main-header {
-        grid-area: header;
-        margin-bottom: 0;
-    }
-    .matches-section-wrapper {
-        grid-area: matches;
-    }
-    .video-section-wrapper {
-        grid-area: video;
-    }
+    .main-header { grid-area: header; }
+    .playlist-import-section { grid-area: import; }
+    .video-section-wrapper { grid-area: video; }
     .playlist-section-wrapper {
         grid-area: playlist;
         display: flex;
@@ -993,46 +858,11 @@ Responsive Layout Optimizations
         grid-area: footer;
         padding-top: 0;
     }
-    .main-header.header-elegant {
-        padding: 1.5rem 2rem;
-    }
-    .main-header.header-elegant .header-logo {
-        height: 60px;
-    }
-    .main-header.header-elegant .support-subtitle {
-        font-size: 1rem;
-    }
-    .navigation-controls button,
-    #qualitySelector button {
-        padding: 1rem 1.5rem;
-        font-size: 1.1rem;
-    }
-    .controls {
-        gap: 1.5rem;
-        padding: 1.5rem;
-    }
-    .controls input {
-        min-width: 250px;
-        font-size: 1.1rem;
-    }
-    .custom-select-wrapper {
-        min-width: 200px;
-    }
     #channelList {
         flex-grow: 1;
         overflow-y: auto;
         max-height: none;
         height: calc(100% - 80px);
-    }
-    #channelList.grid-view {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 1.2rem;
-    }
-    #channelList.grid-view .channel img {
-        width: 100px;
-        height: 100px;
-        border-radius: 8px;
-        object-fit: cover;
     }
     *:focus-visible {
         outline: none;
@@ -1043,118 +873,36 @@ Responsive Layout Optimizations
     }
 }
 
+/* Desktop (1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    .main-header.header-elegant .header-logo { height: 60px; }
+    .main-header.header-elegant .support-subtitle { font-size: 1rem; }
+    .navigation-controls button, #qualitySelector button { padding: 1rem 1.5rem; font-size: 1.1rem; }
+    .controls { gap: 1.5rem; padding: 1.5rem; }
+    .controls input { min-width: 250px; font-size: 1.1rem; }
+    .custom-select-wrapper { min-width: 200px; }
+    #channelList.grid-view { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.2rem; }
+    #channelList.grid-view .channel img { width: 100px; height: 100px; }
+}
+
 /* Large Desktop / Android TV (1280px+) */
 @media (min-width: 1280px) {
     body {
-        display: grid;
         grid-template-columns: 3fr 1fr;
-        grid-template-rows: auto auto 1fr auto;
-        grid-template-areas: 
-            "header header"
-            "matches matches"
-            "video playlist"
-            "footer footer";
-        height: 100vh;
-        overflow: hidden;
-        padding: 2rem;
-        gap: 1.5rem;
         font-size: 1.1rem;
     }
-    .main-header {
-        grid-area: header;
-        margin-bottom: 0;
-    }
-    .matches-section-wrapper {
-        grid-area: matches;
-    }
-    .video-section-wrapper {
-        grid-area: video;
-    }
-    .playlist-section-wrapper {
-        grid-area: playlist;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-        height: 100%;
-    }
-    .footer-wrapper {
-        grid-area: footer;
-        padding-top: 0;
-    }
-    .main-header.header-elegant .header-logo {
-        height: 70px;
-    }
-    .main-header.header-elegant .support-subtitle {
-        font-size: 1.1rem;
-    }
-    .main-header.header-elegant .support-subtitle a:focus-visible {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 3px;
-        border-radius: 4px;
-        color: #fff;
-    }
-    .navigation-controls button,
-    #qualitySelector button {
-        padding: 1.2rem 2rem;
-        font-size: 1.2rem;
-    }
-    .controls {
-        gap: 2rem;
-        padding: 2rem;
-    }
-    .controls input {
-        min-width: 300px;
-        font-size: 1.2rem;
-        padding: 1rem;
-    }
-    .custom-select-trigger {
-        padding: 1rem 2.5rem 1rem 1rem;
-        font-size: 1.2rem;
-    }
-    .custom-option {
-        padding: 1rem;
-        font-size: 1.2rem;
-    }
-    .view-toggle button {
-        padding: 1rem;
-        font-size: 1.2rem;
-    }
-    #channelList {
-        flex-grow: 1;
-        overflow-y: auto;
-        max-height: none;
-        height: calc(100% - 100px);
-    }
-    #channelList.grid-view {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 1.5rem;
-    }
-    #channelList.grid-view .channel img {
-        width: 120px;
-        height: 120px;
-        border-radius: 8px;
-        object-fit: cover;
-    }
-    .channel {
-        padding: 1rem;
-    }
-    .channel img {
-        width: 60px;
-        height: 60px;
-    }
-    .social-links a {
-        font-size: 2rem;
-        margin: 0 1rem;
-    }
-    .contact-btn {
-        padding: 1rem 2rem;
-        font-size: 1.2rem;
-    }
-    *:focus-visible {
-        outline: none;
-        box-shadow: var(--neon-glow);
-        border-color: var(--primary-color-hover);
-        transform: scale(1.02);
-        z-index: 200;
-    }
+    .main-header.header-elegant .header-logo { height: 70px; }
+    .main-header.header-elegant .support-subtitle { font-size: 1.1rem; }
+    .navigation-controls button, #qualitySelector button { padding: 1.2rem 2rem; font-size: 1.2rem; }
+    .controls { gap: 2rem; padding: 2rem; }
+    .controls input { min-width: 300px; font-size: 1.2rem; padding: 1rem; }
+    .custom-select-trigger, .custom-option { padding: 1rem; font-size: 1.2rem; }
+    .view-toggle button { padding: 1rem; font-size: 1.2rem; }
+    #channelList { height: calc(100% - 100px); }
+    #channelList.grid-view { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem; }
+    #channelList.grid-view .channel img { width: 120px; height: 120px; }
+    .channel { padding: 1rem; }
+    .channel img { width: 60px; height: 60px; }
+    .social-links a { font-size: 2rem; margin: 0 1rem; }
+    .contact-btn { padding: 1rem 2rem; font-size: 1.2rem; }
 }
