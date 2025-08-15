@@ -3,7 +3,7 @@ CUSTOM FONT DEFINITION
 ================================= */
 @font-face {
     font-family: 'CustomSiteFont';
-    src: url('fonts/font1.ttf') format('truetype');
+    src: url('fontss/font1.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
@@ -283,104 +283,179 @@ Generic Component Styles (Modern Neon)
     background: var(--scrollbar-thumb-hover);
 }
 
-/* --- Enhanced Matches Carousel Styles --- */
-.match-item {
+/* --- Matches Carousel Styles --- */
+.matches-section-wrapper {
+    padding: 0;
+    margin-bottom: 1rem;
+}
+.matches-section-wrapper {
+    font-family: 'Teko', sans-serif;
+}
+
+.matches-box {
+    position: relative;
+    overflow: hidden;
+    height: 120px; /* উচ্চতা বাড়ানো হয়েছে */
+    background-color: var(--surface-color); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.matches-inner {
     display: flex;
-    flex-direction: column;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    gap: 1rem;
+    animation: marquee 45s linear infinite; /* অ্যানিমেশনের সময় সামান্য বাড়ানো হয়েছে */
+}
+
+.matches-box:hover .matches-inner {
+    animation-play-state: resumed;
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.match-item {
+    flex: 0 0 360px; /* ডেস্কটপের জন্য প্রস্থ বাড়ানো হয়েছে */
+    display: flex;
     align-items: center;
-    padding: 1rem;
-    min-width: 300px;
-    background: var(--card-bg);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    margin: 0 10px;
-    transition: transform 0.3s ease;
+    justify-content: space-around;
+    padding: 1rem; /* প্যাডিং সামঞ্জস্য করা হয়েছে */
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    background-color: var(--background-color); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
 }
 
 .match-item:hover {
+    background-color: var(--channel-hover-bg);
     transform: translateY(-5px);
-    box-shadow: 0 6px 15px rgba(255, 0, 0, 0.3);
+    box-shadow: var(--neon-glow);
+    border-color: var(--primary-color);
 }
 
-.team {
+.match-item .team {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 40%;
+    width: 110px;
+    gap: 8px; /* গ্যাপ সামঞ্জস্য করা হয়েছে */
 }
 
-.team-logo {
-    width: 50px;
-    height: 50px;
+.match-item .team img {
+    width: 50px;  /* লোগোর আকার বাড়ানো হয়েছে */
+    height: 50px; /* লোগোর আকার বাড়ানো হয়েছে */
     object-fit: contain;
-    margin-bottom: 5px;
 }
 
-.team-name {
-    font-size: 0.9rem;
+.match-item .team-name {
+    font-size: 0.9rem; /* ফন্টের আকার বাড়ানো হয়েছে */
     font-weight: bold;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
+    width: 100%;
+    color: var(--text-color);
 }
 
-.vs-container {
+.match-info-center {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 10px;
 }
 
-.vs {
-    font-size: 1.2rem;
+.match-info-center .vs-text {
+    font-size: 1.3rem; /* ফন্টের আকার বাড়ানো হয়েছে */
     font-weight: bold;
     color: var(--primary-color);
-    margin: 0 5px;
-}
-
-.live-icon {
-    width: 30px;
-    height: 30px;
-    margin-top: 5px;
-    display: none;
-}
-
-.match-info {
-    margin-top: 10px;
-    display: flex;
-    justify-content: center;
-    width: 100%;
+    margin-top: -10px; /* 'vs' টেক্সট মাঝখানে আনার জন্য */
 }
 
 .match-status {
     font-weight: bold;
-    font-size: 1.1rem;
-    margin-right: 10px;
-}
-
-.status-upcoming {
-    color: #FFA500; /* Orange */
-}
-
-.status-ongoing {
-    color: #00FF00; /* Green */
-    animation: pulse 1.5s infinite;
-}
-
-.status-ended {
-    color: #FF0000; /* Red */
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
 }
 
 .countdown-timer {
-    font-weight: bold;
+    font-size: 0.9rem;
     color: var(--primary-color);
+    font-weight: bold;
 }
 
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+.status-upcoming {
+    color: orange;
+    background-color: rgba(255, 165, 0, 0.15);
+}
+
+.status-ended {
+    color: var(--text-color-dark); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
+    background-color: rgba(128, 128, 128, 0.2);
+}
+
+.status-ongoing {
+    color: var(--channel-active-color); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
+    background-color: var(--error-color); /* থিম ভেরিয়েবল ব্যবহার করা হয়েছে */
+    animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 3px var(--error-color), 0 0 5px var(--error-color);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 10px var(--error-color), 0 0 15px var(--error-color);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 3px var(--error-color), 0 0 5px var(--error-color);
+    }
+}
+
+/* === মোবাইলের জন্য নতুন CSS কোড === */
+@media (max-width: 767px) {
+    .matches-box {
+        height: 100px; /* মোবাইলের জন্য উচ্চতা কমানো হয়েছে */
+    }
+
+    .match-item {
+        flex: 0 0 290px; /* মোবাইলের জন্য প্রস্থ কমানো হয়েছে */
+        padding: 0.5rem;
+    }
+
+    .match-item .team img {
+        width: 40px; /* মোবাইলের জন্য লোগোর আকার কমানো হয়েছে */
+        height: 40px;
+    }
+
+    .match-item .team-name {
+        font-size: 0.8rem;
+    }
+
+    .match-info-center .vs-text {
+        font-size: 1.1rem;
+    }
+
+    .match-status {
+        font-size: 0.8rem;
+        padding: 3px 10px;
+    }
     }
 /* --- Rest of the structural CSS --- */
 .main-header.header-elegant .header-title {
@@ -708,6 +783,30 @@ Generic Component Styles (Modern Neon)
     padding: 0.75rem 1.5rem;
     background: transparent;
     text-decoration: none;
+}
+
+/* Import playlist styles */
+.import-playlist button {
+    background-color: var(--surface-color);
+    color: var(--text-color-dark);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all var(--transition-speed) ease;
+    box-shadow: var(--shadow);
+}
+
+.import-playlist button:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: var(--neon-glow);
+    transform: scale(1.05);
 }
 
 /* =======================================================
